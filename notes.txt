@@ -1,0 +1,4 @@
+frontend: npm run dev
+backend :cd c:\Coding\todomap\backend
+.\venv\Scripts\Activate.ps1
+uvicorn main:app --reload

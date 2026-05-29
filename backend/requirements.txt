@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+supabase
+python-jose[cryptography]
+httpx
+python-dotenv
