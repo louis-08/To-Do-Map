@@ -87,6 +87,46 @@ export default function SettingsView({
           </div>
         </section>
 
+        <section className="tab-card">
+          <div className="tab-card-title">Controls</div>
+          <div className="set-row" style={{ borderTop: "none", paddingTop: 0 }}>
+            <div className="set-row-text">
+              <div className="set-row-label">Check circle</div>
+              <div className="set-row-sub">Mark a task as done or undone</div>
+            </div>
+          </div>
+          <div className="set-row">
+            <div className="set-row-text">
+              <div className="set-row-label">Double click / Double tap</div>
+              <div className="set-row-sub">Open the color picker for a task</div>
+            </div>
+          </div>
+          <div className="set-row">
+            <div className="set-row-text">
+              <div className="set-row-label">Drag (desktop)</div>
+              <div className="set-row-sub">Click and drag a task to move it to another day or the weekly column</div>
+            </div>
+          </div>
+          <div className="set-row">
+            <div className="set-row-text">
+              <div className="set-row-label">Long press (mobile)</div>
+              <div className="set-row-sub">Hold a task to start dragging it</div>
+            </div>
+          </div>
+          <div className="set-row">
+            <div className="set-row-text">
+              <div className="set-row-label">Trash icon</div>
+              <div className="set-row-sub">Delete a task — recoverable from trash for 30 days</div>
+            </div>
+          </div>
+          <div className="set-row">
+            <div className="set-row-text">
+              <div className="set-row-label">+ button</div>
+              <div className="set-row-sub">Add a new task to that day or weekly column</div>
+            </div>
+          </div>
+        </section>
+
         <section className="tab-card about">
           <div className="set-row-label">To Do Map</div>
           <div className="set-row-sub" style={{ marginTop: 4 }}>Plan your year, one week at a time.</div>

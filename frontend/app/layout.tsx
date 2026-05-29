@@ -12,9 +12,9 @@ const hanken = Hanken_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "TodoMap",
+  title: "To Do Map",
   description: "Calendar-based personal task manager",
-  icons: { icon: "/logo.png" },
+  icons: { icon: "/logo.svg" },
 };
 
 export default function RootLayout({

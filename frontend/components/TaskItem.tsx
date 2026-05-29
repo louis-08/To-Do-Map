@@ -28,7 +28,7 @@ export default function TaskItem({
   onColorChange: (color: string | null) => void;
 }) {
   const [menu, setMenu] = useState(false);
-  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTapRef = useRef(0);
   const movedRef = useRef(false);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -45,14 +45,18 @@ export default function TaskItem({
     transition,
   };
 
-  const startPress = () => {
-    movedRef.current = false;
-    pressTimer.current = setTimeout(() => {
-      if (!movedRef.current) setMenu(true);
-    }, 500);
-  };
-  const cancelPress = () => {
-    if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null; }
+  const handleTouchStart = () => { movedRef.current = false; };
+  const handleTouchMove = () => { movedRef.current = true; };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (movedRef.current) return;
+    const now = Date.now();
+    if (now - lastTapRef.current < 300) {
+      e.preventDefault();
+      setMenu(true);
+      lastTapRef.current = 0;
+    } else {
+      lastTapRef.current = now;
+    }
   };
 
   return (
@@ -68,9 +72,9 @@ export default function TaskItem({
       {...attributes}
       {...listeners}
       onDoubleClick={(e) => { e.preventDefault(); setMenu(true); }}
-      onTouchStart={startPress}
-      onTouchEnd={cancelPress}
-      onTouchMove={() => { movedRef.current = true; cancelPress(); }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       <button
         className={"tm-check" + (task.done ? " is-done" : "")}
