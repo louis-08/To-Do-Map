@@ -14,7 +14,15 @@ const hanken = Hanken_Grotesk({
 export const metadata: Metadata = {
   title: "To Do Map",
   description: "Calendar-based personal task manager",
-  icons: { icon: "/logo.svg" },
+  icons: {
+    icon: "/logo.svg",
+    apple: "/logo.png",
+  },
+  appleWebApp: {
+    capable: true,
+    title: "To Do Map",
+    statusBarStyle: "default",
+  },
 };
 
 export default function RootLayout({
