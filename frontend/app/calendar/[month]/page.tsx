@@ -1,18 +1,16 @@
 "use client";
 
-import { use, useCallback, useEffect, useRef } from "react";
+import { use, useCallback, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, type Task, type WeeklyObjective } from "@/lib/api";
+import { api, type Task } from "@/lib/api";
 import MonthView from "@/components/MonthView";
 
 const FETCH_START = "2026-01-01";
 const FETCH_END   = "2031-12-31";
 const TASKS_KEY   = ["tasks", FETCH_START, FETCH_END];
-const OBJ_KEY     = ["objectives", FETCH_START, FETCH_END];
 
 type TaskCache = { data: Task[] } | undefined;
-type ObjCache  = { data: WeeklyObjective[] } | undefined;
 
 export default function CalendarPage({ params }: { params: Promise<{ month: string }> }) {
   use(params);
@@ -26,38 +24,25 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
     staleTime: 30_000,
   });
 
-  const objectivesQuery = useQuery({
-    queryKey: OBJ_KEY,
-    queryFn: () => a.objectives.list(FETCH_START, FETCH_END),
-    staleTime: 30_000,
-  });
-
   useEffect(() => {
     a.rollover.run().then(() => qc.invalidateQueries({ queryKey: ["tasks"] }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── helpers ──────────────────────────────────────────────────────────────
   function snapshotTasks() {
     return qc.getQueryData<TaskCache>(TASKS_KEY);
-  }
-  function snapshotObjs() {
-    return qc.getQueryData<ObjCache>(OBJ_KEY);
   }
   function patchTasks(updater: (prev: Task[]) => Task[]) {
     qc.setQueryData<TaskCache>(TASKS_KEY, (old) => ({ data: updater(old?.data ?? []) }));
   }
-  function patchObjs(updater: (prev: WeeklyObjective[]) => WeeklyObjective[]) {
-    qc.setQueryData<ObjCache>(OBJ_KEY, (old) => ({ data: updater(old?.data ?? []) }));
-  }
 
-  // ── mutations ─────────────────────────────────────────────────────────────
   const addTask = useMutation({
-    mutationFn: ({ date, text }: { date: string; text: string }) => {
-      const pos = (tasksQuery.data?.data ?? []).filter((t) => t.date === date).length;
-      return a.tasks.create({ date, text, color: null, position: pos });
+    mutationFn: ({ date, text, isWeekly }: { date: string; text: string; isWeekly: boolean }) => {
+      const pos = (tasksQuery.data?.data ?? [])
+        .filter((t) => t.date === date && t.is_weekly_objective === isWeekly).length;
+      return a.tasks.create({ date, text, color: null, position: pos, is_weekly_objective: isWeekly });
     },
-    onMutate: async ({ date, text }) => {
+    onMutate: async ({ date, text, isWeekly }) => {
       await qc.cancelQueries({ queryKey: ["tasks"] });
       const previous = snapshotTasks();
       const optimistic: Task = {
@@ -67,7 +52,8 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
         text,
         done: false,
         color: null,
-        position: (tasksQuery.data?.data ?? []).filter((t) => t.date === date).length,
+        position: (tasksQuery.data?.data ?? []).filter((t) => t.date === date && t.is_weekly_objective === isWeekly).length,
+        is_weekly_objective: isWeekly,
         created_at: new Date().toISOString(),
       };
       patchTasks((prev) => [...prev, optimistic]);
@@ -114,48 +100,30 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
   });
 
   const reorderTasks = useMutation({
-    mutationFn: (updates: { id: string; date: string; position: number }[]) => a.tasks.reorder(updates),
-  });
-
-  const saveObjective = useMutation({
-    mutationFn: ({ weekStart, text }: { weekStart: string; text: string }) =>
-      a.objectives.upsert(weekStart, text),
-    onMutate: async ({ weekStart, text }) => {
-      await qc.cancelQueries({ queryKey: ["objectives"] });
-      const previous = snapshotObjs();
-      patchObjs((prev) => {
-        const exists = prev.find((o) => o.week_start === weekStart);
-        if (exists) return prev.map((o) => o.week_start === weekStart ? { ...o, text } : o);
-        return [...prev, { id: `optimistic-${Date.now()}`, user_id: "", week_start: weekStart, text }];
-      });
-      return { previous };
-    },
-    onError: (_e, _v, ctx) => qc.setQueryData(OBJ_KEY, ctx?.previous),
-    onSettled: () => qc.invalidateQueries({ queryKey: ["objectives"] }),
+    mutationFn: (updates: { id: string; date: string; position: number; is_weekly_objective?: boolean }[]) =>
+      a.tasks.reorder(updates),
   });
 
   const tasks = tasksQuery.data?.data ?? [];
-  const objectives = objectivesQuery.data?.data ?? [];
-
-  // Stable ref so callbacks below don't need tasks as a dependency
-  const tasksRef = useRef(tasks);
-  useEffect(() => { tasksRef.current = tasks; }, [tasks]);
 
   const { mutate: addMutate } = addTask;
   const { mutate: toggleMutate } = toggleTask;
   const { mutate: deleteMutate } = deleteTask;
   const { mutate: colorMutate } = colorTask;
   const { mutate: reorderMutate } = reorderTasks;
-  const { mutate: objectiveMutate } = saveObjective;
 
   const handleAddTask = useCallback((date: string, text: string) => {
-    addMutate({ date, text });
+    addMutate({ date, text, isWeekly: false });
+  }, [addMutate]);
+
+  const handleAddWeeklyTask = useCallback((mondayISO: string, text: string) => {
+    addMutate({ date: mondayISO, text, isWeekly: true });
   }, [addMutate]);
 
   const handleToggle = useCallback((id: string) => {
-    const task = tasksRef.current.find((t) => t.id === id);
+    const task = tasks.find((t) => t.id === id);
     if (task) toggleMutate({ id, done: !task.done });
-  }, [toggleMutate]);
+  }, [toggleMutate, tasks]);
 
   const handleDelete = useCallback((id: string) => {
     deleteMutate(id);
@@ -165,13 +133,9 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
     colorMutate({ id, color });
   }, [colorMutate]);
 
-  const handleReorder = useCallback((updates: { id: string; date: string; position: number }[]) => {
+  const handleReorder = useCallback((updates: { id: string; date: string; position: number; is_weekly_objective?: boolean }[]) => {
     reorderMutate(updates);
   }, [reorderMutate]);
-
-  const handleObjectiveSave = useCallback((weekStart: string, text: string) => {
-    objectiveMutate({ weekStart, text });
-  }, [objectiveMutate]);
 
   const handleExport = useCallback(async () => {
     const blob = await a.export.markdown();
@@ -195,13 +159,12 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
   return (
     <MonthView
       tasks={tasks}
-      objectives={objectives}
       onAddTask={handleAddTask}
+      onAddWeeklyTask={handleAddWeeklyTask}
       onToggle={handleToggle}
       onDelete={handleDelete}
       onColorChange={handleColorChange}
       onReorder={handleReorder}
-      onObjectiveSave={handleObjectiveSave}
       onExport={handleExport}
     />
   );

@@ -1,6 +1,14 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useDroppable } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import type { Task } from "@/lib/api";
+import TaskItem from "./TaskItem";
+import TaskInput from "./TaskInput";
+
+function toISO(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 function monthSpanLabel(monday: Date, sunday: Date): string {
   const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -14,61 +22,53 @@ export default function WeeklyObjective({
   weekNum,
   monday,
   sunday,
-  value,
+  tasks,
   isCurrent,
-  onSave,
+  onAdd,
+  onToggle,
+  onDelete,
+  onColorChange,
 }: {
   weekNum: number;
   monday: Date;
   sunday: Date;
-  value: string;
+  tasks: Task[];
   isCurrent: boolean;
-  onSave: (text: string) => void;
+  onAdd: (mondayISO: string, text: string) => void;
+  onToggle: (id: string) => void;
+  onDelete: (id: string) => void;
+  onColorChange: (id: string, color: string | null) => void;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [val, setVal] = useState(value);
-  const ref = useRef<HTMLTextAreaElement>(null);
+  const mondayISO = toISO(monday);
+  const { setNodeRef, isOver } = useDroppable({ id: "week:" + mondayISO });
 
-  useEffect(() => { setVal(value); }, [value]);
-  useEffect(() => {
-    if (editing && ref.current) { ref.current.focus(); ref.current.select(); }
-  }, [editing]);
-
-  function save() {
-    onSave(val.trim());
-    setEditing(false);
-  }
-
-  const cls = ["tm-cell", "tm-obj", isCurrent ? "is-current" : ""].filter(Boolean).join(" ");
+  const cls = [
+    "tm-cell",
+    "tm-obj",
+    isCurrent ? "is-current" : "",
+    isOver ? "is-over" : "",
+  ].filter(Boolean).join(" ");
 
   return (
-    <div className={cls}>
+    <div ref={setNodeRef} className={cls}>
       <div className="tm-obj-head">
         <span className="tm-weeknum">W{weekNum}</span>
         <span className="tm-monthspan">{monthSpanLabel(monday, sunday)}</span>
       </div>
-      {editing ? (
-        <textarea
-          ref={ref}
-          className="tm-obj-input"
-          value={val}
-          placeholder="Set a weekly objective…"
-          onChange={(e) => setVal(e.target.value)}
-          onBlur={save}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); save(); }
-            else if (e.key === "Escape") { setVal(value); setEditing(false); }
-          }}
-        />
-      ) : value ? (
-        <button className="tm-obj-text" onClick={() => setEditing(true)}>
-          {value}
-        </button>
-      ) : (
-        <button className="tm-add" onClick={() => setEditing(true)} aria-label="Set weekly objective">
-          <span className="tm-add-plus">+</span>
-        </button>
-      )}
+      <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+        <div className="tm-tasks">
+          {tasks.map((task) => (
+            <TaskItem
+              key={task.id}
+              task={task}
+              onToggle={() => onToggle(task.id)}
+              onDelete={() => onDelete(task.id)}
+              onColorChange={(color) => onColorChange(task.id, color)}
+            />
+          ))}
+        </div>
+      </SortableContext>
+      <TaskInput onAdd={(text) => onAdd(mondayISO, text)} />
     </div>
   );
 }

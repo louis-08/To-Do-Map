@@ -32,6 +32,7 @@ async def create_task(body: TaskCreate, user_id: str = Depends(get_current_user)
             "text": body.text,
             "color": body.color,
             "position": body.position,
+            "is_weekly_objective": body.is_weekly_objective,
         })
         .execute()
     )
@@ -42,9 +43,10 @@ async def create_task(body: TaskCreate, user_id: str = Depends(get_current_user)
 async def reorder_tasks(body: ReorderRequest, user_id: str = Depends(get_current_user)):
     db = get_db()
     for item in body.updates:
-        db.table("tasks").update(
-            {"date": str(item.date), "position": item.position}
-        ).eq("id", item.id).eq("user_id", user_id).execute()
+        update: dict = {"date": str(item.date), "position": item.position}
+        if item.is_weekly_objective is not None:
+            update["is_weekly_objective"] = item.is_weekly_objective
+        db.table("tasks").update(update).eq("id", item.id).eq("user_id", user_id).execute()
     return {"data": "ok"}
 
 

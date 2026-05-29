@@ -26,6 +26,7 @@ export type Task = {
   done: boolean;
   color: string | null;
   position: number;
+  is_weekly_objective: boolean;
   created_at: string;
 };
 
@@ -51,7 +52,7 @@ export function api(getToken: () => Promise<string | null>) {
       list: (start: string, end: string) =>
         req<{ data: Task[] }>(`/tasks?start=${start}&end=${end}`, { method: "GET" }, getToken),
 
-      create: (body: { date: string; text: string; color: string | null; position: number }) =>
+      create: (body: { date: string; text: string; color: string | null; position: number; is_weekly_objective: boolean }) =>
         req<{ data: Task }>("/tasks", { method: "POST", body: JSON.stringify(body) }, getToken),
 
       update: (id: string, body: Partial<Pick<Task, "text" | "done" | "color" | "position" | "date">>) =>
@@ -60,7 +61,7 @@ export function api(getToken: () => Promise<string | null>) {
       delete: (id: string) =>
         req<{ data: string }>(`/tasks/${id}`, { method: "DELETE" }, getToken),
 
-      reorder: (updates: { id: string; date: string; position: number }[]) =>
+      reorder: (updates: { id: string; date: string; position: number; is_weekly_objective?: boolean }[]) =>
         req<{ data: string }>("/tasks/reorder", { method: "PATCH", body: JSON.stringify({ updates }) }, getToken),
     },
 

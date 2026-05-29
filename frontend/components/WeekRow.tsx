@@ -1,9 +1,9 @@
 "use client";
 
 import { memo } from "react";
-import type { Task, WeeklyObjective } from "@/lib/api";
+import type { Task } from "@/lib/api";
 import DayColumn from "./DayColumn";
-import WeeklyObjectiveComp from "./WeeklyObjective";
+import WeeklyObjective from "./WeeklyObjective";
 
 function toISO(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -17,22 +17,20 @@ function isoToday() {
 const WeekRow = memo(function WeekRow({
   week,
   tasks,
-  objective,
   onAddTask,
+  onAddWeeklyTask,
   onToggle,
   onDelete,
   onColorChange,
-  onObjectiveSave,
   currentRef,
 }: {
   week: { num: number; year: number; monday: Date; sunday: Date; days: Date[]; isCurrent: boolean };
   tasks: Task[];
-  objective: WeeklyObjective | undefined;
   onAddTask: (date: string, text: string) => void;
+  onAddWeeklyTask: (mondayISO: string, text: string) => void;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onColorChange: (id: string, color: string | null) => void;
-  onObjectiveSave: (weekStart: string, text: string) => void;
   currentRef?: React.RefObject<HTMLDivElement | null>;
 }) {
   const today = isoToday();
@@ -44,7 +42,10 @@ const WeekRow = memo(function WeekRow({
     return "future" as const;
   };
 
-  const tasksForDay = (d: Date) => tasks.filter((t) => t.date === toISO(d));
+  const tasksForDay = (d: Date) =>
+    tasks.filter((t) => t.date === toISO(d) && !t.is_weekly_objective);
+
+  const weeklyTasks = tasks.filter((t) => t.is_weekly_objective);
 
   return (
     <div
@@ -65,13 +66,16 @@ const WeekRow = memo(function WeekRow({
           onColorChange={onColorChange}
         />
       ))}
-      <WeeklyObjectiveComp
+      <WeeklyObjective
         weekNum={week.num}
         monday={week.monday}
         sunday={week.sunday}
-        value={objective?.text ?? ""}
+        tasks={weeklyTasks}
         isCurrent={week.isCurrent}
-        onSave={(text) => onObjectiveSave(toISO(week.monday), text)}
+        onAdd={onAddWeeklyTask}
+        onToggle={onToggle}
+        onDelete={onDelete}
+        onColorChange={onColorChange}
       />
     </div>
   );

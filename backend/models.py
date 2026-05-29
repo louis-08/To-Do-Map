@@ -8,6 +8,7 @@ class TaskCreate(BaseModel):
     text: str
     color: Optional[str] = None
     position: int
+    is_weekly_objective: bool = False
 
 
 class TaskUpdate(BaseModel):
@@ -16,12 +17,14 @@ class TaskUpdate(BaseModel):
     color: Optional[str] = None
     position: Optional[int] = None
     date: Optional[date] = None
+    is_weekly_objective: Optional[bool] = None
 
 
 class ReorderItem(BaseModel):
     id: str
     date: date
     position: int
+    is_weekly_objective: Optional[bool] = None
 
 
 class ReorderRequest(BaseModel):
