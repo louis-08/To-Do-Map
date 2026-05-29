@@ -87,6 +87,18 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
     onSettled: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
   });
 
+  const editTask = useMutation({
+    mutationFn: ({ id, text }: { id: string; text: string }) => a.tasks.update(id, { text }),
+    onMutate: async ({ id, text }) => {
+      await qc.cancelQueries({ queryKey: ["tasks"] });
+      const previous = snapshotTasks();
+      patchTasks((prev) => prev.map((t) => t.id === id ? { ...t, text } : t));
+      return { previous };
+    },
+    onError: (_e, _v, ctx) => qc.setQueryData(TASKS_KEY, ctx?.previous),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+
   const colorTask = useMutation({
     mutationFn: ({ id, color }: { id: string; color: string | null }) => a.tasks.update(id, { color }),
     onMutate: async ({ id, color }) => {
@@ -102,6 +114,7 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
   const reorderTasks = useMutation({
     mutationFn: (updates: { id: string; date: string; position: number; is_weekly_objective?: boolean }[]) =>
       a.tasks.reorder(updates),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
   });
 
   const tasks = tasksQuery.data?.data ?? [];
@@ -109,6 +122,7 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
   const { mutate: addMutate } = addTask;
   const { mutate: toggleMutate } = toggleTask;
   const { mutate: deleteMutate } = deleteTask;
+  const { mutate: editMutate } = editTask;
   const { mutate: colorMutate } = colorTask;
   const { mutate: reorderMutate } = reorderTasks;
 
@@ -128,6 +142,10 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
   const handleDelete = useCallback((id: string) => {
     deleteMutate(id);
   }, [deleteMutate]);
+
+  const handleEdit = useCallback((id: string, text: string) => {
+    editMutate({ id, text });
+  }, [editMutate]);
 
   const handleColorChange = useCallback((id: string, color: string | null) => {
     colorMutate({ id, color });
@@ -164,6 +182,7 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
       onToggle={handleToggle}
       onDelete={handleDelete}
       onColorChange={handleColorChange}
+      onEdit={handleEdit}
       onReorder={handleReorder}
       onExport={handleExport}
     />

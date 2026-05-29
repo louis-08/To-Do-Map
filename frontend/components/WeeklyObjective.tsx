@@ -28,6 +28,7 @@ export default function WeeklyObjective({
   onToggle,
   onDelete,
   onColorChange,
+  onEdit,
 }: {
   weekNum: number;
   monday: Date;
@@ -38,6 +39,7 @@ export default function WeeklyObjective({
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onColorChange: (id: string, color: string | null) => void;
+  onEdit: (id: string, text: string) => void;
 }) {
   const mondayISO = toISO(monday);
   const { setNodeRef, isOver } = useDroppable({ id: "week:" + mondayISO });
@@ -64,6 +66,7 @@ export default function WeeklyObjective({
               onToggle={() => onToggle(task.id)}
               onDelete={() => onDelete(task.id)}
               onColorChange={(color) => onColorChange(task.id, color)}
+              onEdit={(text) => onEdit(task.id, text)}
             />
           ))}
         </div>

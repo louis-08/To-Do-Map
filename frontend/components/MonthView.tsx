@@ -7,8 +7,7 @@ import {
   DragOverEvent,
   DragStartEvent,
   DragOverlay,
-  MouseSensor,
-  TouchSensor,
+  PointerSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -72,6 +71,7 @@ export default function MonthView({
   onToggle,
   onDelete,
   onColorChange,
+  onEdit,
   onReorder,
   onExport,
 }: {
@@ -81,6 +81,7 @@ export default function MonthView({
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onColorChange: (id: string, color: string | null) => void;
+  onEdit: (id: string, text: string) => void;
   onReorder: (updates: { id: string; date: string; position: number; is_weekly_objective?: boolean }[]) => void;
   onExport: () => void;
 }) {
@@ -145,10 +146,7 @@ export default function MonthView({
     return next;
   }, [tasks, visibleWeeks]);
 
-  const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
-  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const scrollToToday = useCallback((smooth: boolean) => {
     const sc = scrollerRef.current;
@@ -294,6 +292,7 @@ export default function MonthView({
                   onToggle={onToggle}
                   onDelete={onDelete}
                   onColorChange={onColorChange}
+                  onEdit={onEdit}
                   currentRef={week.isCurrent ? currentRef : undefined}
                 />
               </div>

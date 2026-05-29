@@ -178,13 +178,31 @@ body {
 .tm-check.is-done { background: var(--check); border-color: var(--check-edge); color: #fff; }
 
 .tm-task-del {
-  position: absolute; top: 4px; right: 4px;
-  width: 18px; height: 18px; border: none; background: transparent;
+  position: absolute; top: 50%; right: 4px; transform: translateY(-50%);
+  width: 24px; height: 24px; border: none; background: transparent;
   color: var(--muted); cursor: pointer; opacity: 0; display: grid; place-items: center;
-  border-radius: 5px; transition: opacity .12s ease, background .12s ease;
+  border-radius: 6px; transition: opacity .12s ease, background .12s ease;
 }
-.tm-task:hover .tm-task-del { opacity: 1; }
+.tm-task:hover .tm-task-del,
+.tm-task.is-actions .tm-task-del { opacity: 1; }
 .tm-task-del:hover { background: rgba(0,0,0,.1); color: #c0392b; }
+
+.tm-task-color {
+  position: absolute; top: 50%; right: 30px; transform: translateY(-50%);
+  width: 24px; height: 24px; border: none; background: transparent;
+  color: var(--muted); cursor: pointer; opacity: 0; display: grid; place-items: center;
+  border-radius: 6px; padding: 0;
+  transition: opacity .12s ease, background .12s ease;
+}
+.tm-task:hover .tm-task-color,
+.tm-task.is-actions .tm-task-color { opacity: 1; }
+.tm-task-color:hover { background: rgba(0,0,0,.1); }
+
+.tm-task-edit {
+  flex: 1 1 auto; border: none; background: transparent;
+  font-family: inherit; font-size: var(--task-fs); line-height: 1.35;
+  color: var(--ink); padding: 0; margin: 0; outline: none; width: 0; min-width: 0;
+}
 
 /* ---------- color menu ---------- */
 .tm-color-menu {
@@ -199,7 +217,6 @@ body {
 }
 .tm-color-sw:hover { transform: scale(1.12); }
 .tm-color-sw.is-sel { box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px var(--ink); }
-.tm-color-none { font-size: 9px; font-weight: 700; color: var(--muted); line-height: 1; }
 
 /* ---------- add task ---------- */
 .tm-add {

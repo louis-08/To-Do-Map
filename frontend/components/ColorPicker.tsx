@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 export const TASK_COLORS = [
-  { key: "none",   bg: "",          dot: "#c2c2c8" },
+  { key: "grey",   bg: "#ededf0",   dot: "#9a9aa2" },
   { key: "red",    bg: "#fde7e4",   dot: "#e5604d" },
   { key: "amber",  bg: "#fdefce",   dot: "#e0a008" },
   { key: "green",  bg: "#e2f4e9",   dot: "#1f9d5b" },
@@ -36,17 +36,15 @@ export default function ColorPicker({
   return (
     <div className="tm-color-menu" onMouseDown={(e) => e.stopPropagation()}>
       {TASK_COLORS.map((c) => {
-        const sel = (current ?? "none") === c.key;
+        const sel = (current ?? "") === c.key;
         return (
           <button
             key={c.key}
             className={"tm-color-sw" + (sel ? " is-sel" : "")}
-            style={{ background: c.key === "none" ? "#fff" : c.bg, borderColor: c.dot }}
-            title={c.key === "none" ? "No color" : c.key}
-            onClick={() => { onSelect(c.key === "none" ? null : c.key); onClose(); }}
-          >
-            {c.key === "none" && <span className="tm-color-none">✕</span>}
-          </button>
+            style={{ background: c.bg, borderColor: c.dot }}
+            title={c.key}
+            onClick={() => { onSelect(c.key); onClose(); }}
+          />
         );
       })}
     </div>

@@ -22,6 +22,7 @@ const WeekRow = memo(function WeekRow({
   onToggle,
   onDelete,
   onColorChange,
+  onEdit,
   currentRef,
 }: {
   week: { num: number; year: number; monday: Date; sunday: Date; days: Date[]; isCurrent: boolean };
@@ -31,6 +32,7 @@ const WeekRow = memo(function WeekRow({
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onColorChange: (id: string, color: string | null) => void;
+  onEdit: (id: string, text: string) => void;
   currentRef?: React.RefObject<HTMLDivElement | null>;
 }) {
   const today = isoToday();
@@ -64,6 +66,7 @@ const WeekRow = memo(function WeekRow({
           onToggle={onToggle}
           onDelete={onDelete}
           onColorChange={onColorChange}
+          onEdit={onEdit}
         />
       ))}
       <WeeklyObjective
@@ -76,6 +79,7 @@ const WeekRow = memo(function WeekRow({
         onToggle={onToggle}
         onDelete={onDelete}
         onColorChange={onColorChange}
+        onEdit={onEdit}
       />
     </div>
   );

@@ -27,6 +27,7 @@ export default function DayColumn({
   onToggle,
   onDelete,
   onColorChange,
+  onEdit,
 }: {
   date: Date;
   dayIndex: number;
@@ -36,6 +37,7 @@ export default function DayColumn({
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onColorChange: (id: string, color: string | null) => void;
+  onEdit: (id: string, text: string) => void;
 }) {
   const isoDate = toISO(date);
   const { setNodeRef, isOver } = useDroppable({ id: isoDate });
@@ -64,6 +66,7 @@ export default function DayColumn({
               onToggle={() => onToggle(task.id)}
               onDelete={() => onDelete(task.id)}
               onColorChange={(color) => onColorChange(task.id, color)}
+              onEdit={(text) => onEdit(task.id, text)}
             />
           ))}
         </div>
