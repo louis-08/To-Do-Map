@@ -60,12 +60,13 @@ export default function WeeklyObjective({
             else if (e.key === "Escape") { setVal(value); setEditing(false); }
           }}
         />
+      ) : value ? (
+        <button className="tm-obj-text" onClick={() => setEditing(true)}>
+          {value}
+        </button>
       ) : (
-        <button
-          className={"tm-obj-text" + (value ? "" : " is-empty")}
-          onClick={() => setEditing(true)}
-        >
-          {value || "Set objective"}
+        <button className="tm-add" onClick={() => setEditing(true)} aria-label="Set weekly objective">
+          <span className="tm-add-plus">+</span>
         </button>
       )}
     </div>
