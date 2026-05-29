@@ -16,7 +16,6 @@ export const metadata: Metadata = {
   description: "Calendar-based personal task manager",
   icons: {
     icon: "/logo.svg",
-    apple: "/logo.png",
   },
   appleWebApp: {
     capable: true,
