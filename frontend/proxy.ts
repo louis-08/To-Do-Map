@@ -1,6 +1,11 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-const isPublic = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)"]);
+const isPublic = createRouteMatcher([
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/apple-icon",
+  "/manifest.webmanifest",
+]);
 
 export const proxy = clerkMiddleware(async (auth, req) => {
   if (!isPublic(req)) {
