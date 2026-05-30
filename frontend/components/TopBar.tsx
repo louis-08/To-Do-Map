@@ -36,7 +36,7 @@ export default function TopBar({
   return (
     <header className="tm-topbar">
       <div className="tm-brand">
-        <Image src="/logo.svg" alt="To Do Map" width={28} height={28} className="tm-logo-img" />
+        <Image src="/icon.png" alt="To Do Map" width={28} height={28} className="tm-logo-img" />
         <span className="tm-brand-name">To Do Map</span>
         <span className="tm-year-pill">{visibleYear}</span>
       </div>

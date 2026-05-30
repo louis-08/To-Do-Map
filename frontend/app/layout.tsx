@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   title: "To Do Map",
   description: "Calendar-based personal task manager",
   icons: {
-    icon: "/logo.svg",
+    icon: "/icon.png",
   },
   appleWebApp: {
     capable: true,

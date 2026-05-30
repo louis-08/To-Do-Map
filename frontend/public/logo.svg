@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <!-- Map pin body -->
-  <path d="M16 2C10.477 2 6 6.477 6 12C6 18.5 16 30 16 30C16 30 26 18.5 26 12C26 6.477 21.523 2 16 2Z" fill="#FFCB2D"/>
-  <!-- Inner circle -->
-  <circle cx="16" cy="12" r="5" fill="#16161a"/>
-  <!-- Checkmark -->
-  <path d="M13 12l2 2 4-3.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
