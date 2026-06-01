@@ -89,6 +89,23 @@ export default function MonthView({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [view, setView] = useState<ViewType>("board");
   const [visibleYear, setVisibleYear] = useState(() => new Date().getFullYear());
+  const [nowMondayTime, setNowMondayTime] = useState(() => mondayOf(new Date()).getTime());
+
+  // ALL_WEEKS is built once at module load, so its baked `isCurrent` goes stale
+  // when the PWA stays open across a week boundary. Re-derive the current week
+  // whenever the app regains focus/visibility.
+  useEffect(() => {
+    const sync = () => {
+      const t = mondayOf(new Date()).getTime();
+      setNowMondayTime((prev) => (prev === t ? prev : t));
+    };
+    document.addEventListener("visibilitychange", sync);
+    window.addEventListener("focus", sync);
+    return () => {
+      document.removeEventListener("visibilitychange", sync);
+      window.removeEventListener("focus", sync);
+    };
+  }, []);
 
   const [startIdx, setStartIdx] = useState(() => Math.max(0, CURRENT_WEEK_IDX - LOAD_SIZE));
   const [endIdx, setEndIdx] = useState(() => Math.min(ALL_WEEKS.length - 1, CURRENT_WEEK_IDX + LOAD_SIZE * 2));
@@ -244,14 +261,15 @@ export default function MonthView({
   const rows = useMemo(() => {
     const result: Array<{ week: typeof visibleWeeks[0]; divider: string | null }> = [];
     let prevMonthKey = "";
-    for (const week of visibleWeeks) {
+    for (const w of visibleWeeks) {
+      const week = { ...w, isCurrent: w.monday.getTime() === nowMondayTime };
       const key = week.monday.getMonth() + "-" + week.year;
       const divider = key !== prevMonthKey ? MONTHS[week.monday.getMonth()] + " " + week.year : null;
       result.push({ week, divider });
       prevMonthKey = key;
     }
     return result;
-  }, [visibleWeeks]);
+  }, [visibleWeeks, nowMondayTime]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
