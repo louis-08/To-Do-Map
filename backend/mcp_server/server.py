@@ -19,6 +19,7 @@ from pydantic import AnyHttpUrl
 from mcp.server.fastmcp import FastMCP
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.auth.middleware.auth_context import get_access_token
+from mcp.server.transport_security import TransportSecuritySettings
 
 from database import get_db
 from models import TaskCreate, TaskUpdate, ObjectiveUpsert
@@ -45,6 +46,9 @@ mcp = FastMCP(
         issuer_url=AnyHttpUrl(_ISSUER),
         resource_server_url=AnyHttpUrl(_RESOURCE_SERVER_URL),
         required_scopes=[],
+    ),
+    transport_security=TransportSecuritySettings(
+        enable_dns_rebinding_protection=False,
     ),
 )
 # Serve the endpoint at the mount root (/mcp) instead of /mcp/mcp.
