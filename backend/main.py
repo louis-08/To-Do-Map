@@ -1,11 +1,25 @@
 from dotenv import load_dotenv
 load_dotenv()
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from routers import tasks, objectives, trash, rollover, export, account
+from mcp_server.server import mcp, PROTECTED_RESOURCE_METADATA
 
-app = FastAPI(title="TodoMap API")
+mcp_app = mcp.streamable_http_app()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Streamable HTTP needs its session manager running for the app's lifetime.
+    async with mcp.session_manager.run():
+        yield
+
+
+app = FastAPI(title="TodoMap API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -21,6 +35,18 @@ app.include_router(trash.router)
 app.include_router(rollover.router)
 app.include_router(export.router)
 app.include_router(account.router)
+
+# MCP server (OAuth-protected) mounted at /mcp
+app.mount("/mcp", mcp_app)
+
+
+# OAuth Protected Resource Metadata (RFC 9728) served at the origin root, where
+# the MCP 401 advertises it. Both the bare and resource-suffixed paths are
+# served because clients differ in which they request.
+@app.get("/.well-known/oauth-protected-resource")
+@app.get("/.well-known/oauth-protected-resource/mcp")
+async def oauth_protected_resource():
+    return JSONResponse(PROTECTED_RESOURCE_METADATA)
 
 
 @app.get("/health")

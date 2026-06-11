@@ -4,3 +4,4 @@ supabase
 python-jose[cryptography]
 httpx
 python-dotenv
+mcp

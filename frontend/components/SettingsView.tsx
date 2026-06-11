@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useClerk, useUser, useAuth } from "@clerk/nextjs";
 import { api } from "@/lib/api";
+import McpServerInfo from "./McpServerInfo";
 
 function IconBack() {
   return (
@@ -56,6 +57,11 @@ export default function SettingsView({
             </div>
             <button className="btn-ghost" onClick={onExport}>Export</button>
           </div>
+        </section>
+
+        <section className="tab-card">
+          <div className="tab-card-title">AI Integration (MCP)</div>
+          <McpServerInfo />
         </section>
 
         <section className="tab-card">
