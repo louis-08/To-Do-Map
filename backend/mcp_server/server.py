@@ -56,7 +56,11 @@ mcp.settings.streamable_http_path = "/"
 PROTECTED_RESOURCE_METADATA = {
     "resource": _RESOURCE_SERVER_URL.rstrip("/") + "/mcp",
     "authorization_servers": [_ISSUER + "/"],
-    "scopes_supported": [],
+    # Advertise only scopes Clerk allows for dynamically-registered clients.
+    # Must NOT include "openid" — Clerk forbids it for DCR clients, and an
+    # empty list makes the client fall back to Clerk's metadata (which lists
+    # openid) and request it, causing an invalid_scope error.
+    "scopes_supported": ["profile", "email"],
     "bearer_methods_supported": ["header"],
 }
 
