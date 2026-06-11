@@ -1,10 +1,10 @@
 from pydantic import BaseModel
 from typing import Optional
-from datetime import date
+import datetime
 
 
 class TaskCreate(BaseModel):
-    date: date
+    date: datetime.date
     text: str
     color: Optional[str] = None
     position: int
@@ -16,13 +16,13 @@ class TaskUpdate(BaseModel):
     done: Optional[bool] = None
     color: Optional[str] = None
     position: Optional[int] = None
-    date: Optional[date] = None
+    date: Optional[datetime.date] = None
     is_weekly_objective: Optional[bool] = None
 
 
 class ReorderItem(BaseModel):
     id: str
-    date: date
+    date: datetime.date
     position: int
     is_weekly_objective: Optional[bool] = None
 
