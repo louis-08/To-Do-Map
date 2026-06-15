@@ -78,7 +78,10 @@ export default function TaskItem({
     setEditing(false);
   }
 
-  const handleTouchStart = () => { movedRef.current = false; };
+  const handleTouchStart = (e: React.TouchEvent) => {
+    movedRef.current = false;
+    if (!editing) listeners?.onTouchStart?.(e);
+  };
   const handleTouchMove = () => { movedRef.current = true; };
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (movedRef.current) return;

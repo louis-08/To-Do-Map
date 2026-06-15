@@ -7,7 +7,8 @@ import {
   DragOverEvent,
   DragStartEvent,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -163,7 +164,10 @@ export default function MonthView({
     return next;
   }, [tasks, visibleWeeks]);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+  );
 
   const scrollToToday = useCallback((smooth: boolean) => {
     const sc = scrollerRef.current;
@@ -272,7 +276,7 @@ export default function MonthView({
   }, [visibleWeeks, nowMondayTime]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100dvh" }}>
       <TopBar
         visibleYear={visibleYear}
         view={view}

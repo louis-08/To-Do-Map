@@ -1,5 +1,5 @@
 frontend: npm run dev
-backend :cd c:\Coding\todomap\backend
+backend cd c:\Coding\To-Do-Map\backend
 .\venv\Scripts\Activate.ps1
 uvicorn main:app --reload
 
