@@ -33,7 +33,9 @@ def _build_markdown(user_id: str) -> str:
     lines = [f"# TodoMap Backup — {today.isoformat()}\n"]
     current_year = current_month = current_week = None
 
-    for task in tasks:
+    day_tasks = [t for t in tasks if t.get("scope", "day") == "day"]
+
+    for task in day_tasks:
         d = date.fromisoformat(task["date"])
         week_start = d - timedelta(days=d.weekday())
         week_end = week_start + timedelta(days=6)
@@ -62,6 +64,43 @@ def _build_markdown(user_id: str) -> str:
         lines.append(f"\n**{day_label}**")
         check = "x" if task["done"] else " "
         lines.append(f"- [{check}] {task['text']}")
+
+    month_tasks = [t for t in tasks if t.get("scope") == "month"]
+    if month_tasks:
+        lines.append("\n## Monthly Plans")
+        cur = None
+        for t in month_tasks:
+            d = date.fromisoformat(t["date"])
+            if (d.year, d.month) != cur:
+                cur = (d.year, d.month)
+                lines.append(f"\n### {d.strftime('%B %Y')}")
+            check = "x" if t["done"] else " "
+            lines.append(f"- [{check}] {t['text']}")
+
+    quarter_tasks = [t for t in tasks if t.get("scope") == "quarter"]
+    if quarter_tasks:
+        lines.append("\n## Quarterly Plans")
+        cur = None
+        for t in quarter_tasks:
+            d = date.fromisoformat(t["date"])
+            q = (d.month - 1) // 3 + 1
+            if (d.year, q) != cur:
+                cur = (d.year, q)
+                lines.append(f"\n### Q{q} {d.year}")
+            check = "x" if t["done"] else " "
+            lines.append(f"- [{check}] {t['text']}")
+
+    year_tasks = [t for t in tasks if t.get("scope") == "year"]
+    if year_tasks:
+        lines.append("\n## Yearly Objectives")
+        cur = None
+        for t in year_tasks:
+            d = date.fromisoformat(t["date"])
+            if d.year != cur:
+                cur = d.year
+                lines.append(f"\n### {d.year}")
+            check = "x" if t["done"] else " "
+            lines.append(f"- [{check}] {t['text']}")
 
     return "\n".join(lines)
 

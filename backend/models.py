@@ -1,23 +1,25 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 import datetime
 
 
 class TaskCreate(BaseModel):
     date: datetime.date
-    text: str
-    color: Optional[str] = None
+    text: str = Field(max_length=2000)
+    color: Optional[str] = Field(default=None, max_length=50)
     position: int
     is_weekly_objective: bool = False
+    scope: str = "day"
 
 
 class TaskUpdate(BaseModel):
-    text: Optional[str] = None
+    text: Optional[str] = Field(default=None, max_length=2000)
     done: Optional[bool] = None
-    color: Optional[str] = None
+    color: Optional[str] = Field(default=None, max_length=50)
     position: Optional[int] = None
     date: Optional[datetime.date] = None
     is_weekly_objective: Optional[bool] = None
+    scope: Optional[str] = None
 
 
 class ReorderItem(BaseModel):
@@ -25,6 +27,7 @@ class ReorderItem(BaseModel):
     date: datetime.date
     position: int
     is_weekly_objective: Optional[bool] = None
+    scope: Optional[str] = None
 
 
 class ReorderRequest(BaseModel):
@@ -32,4 +35,8 @@ class ReorderRequest(BaseModel):
 
 
 class ObjectiveUpsert(BaseModel):
-    text: str
+    text: str = Field(max_length=2000)
+
+
+class SettingsUpdate(BaseModel):
+    auto_rollover: bool

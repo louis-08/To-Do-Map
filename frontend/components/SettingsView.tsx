@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useClerk, useUser, useAuth } from "@clerk/nextjs";
+import { useEffect, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { api } from "@/lib/api";
+import { useI18n } from "@/lib/i18n";
 import McpServerInfo from "./McpServerInfo";
 
 function IconBack() {
@@ -20,122 +21,94 @@ export default function SettingsView({
   onBack: () => void;
   onExport: () => void;
 }) {
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  const { signOut } = useClerk();
-  const { user } = useUser();
   const { getToken } = useAuth();
+  const { t, lang, setLang } = useI18n();
   const a = api(getToken as () => Promise<string | null>);
+  const [autoRollover, setAutoRollover] = useState(false);
 
-  async function handleDeleteAccount() {
-    setDeleting(true);
-    try {
-      await a.account.delete();
-      await user?.delete();
-    } catch {
-      setDeleting(false);
-      setConfirmDelete(false);
-    }
+  useEffect(() => {
+    a.settings.get().then((s) => setAutoRollover(s.data.auto_rollover)).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function toggleAutoRollover() {
+    const next = !autoRollover;
+    setAutoRollover(next);
+    a.settings.update({ auto_rollover: next }).catch(() => setAutoRollover(!next));
   }
 
   return (
     <div className="tab-screen">
       <div className="tab-head">
-        <button className="tab-back" onClick={onBack}><IconBack /> Board</button>
-        <h1 className="tab-title">Settings</h1>
+        <button className="tab-back" onClick={onBack}><IconBack /> {t.board}</button>
+        <h1 className="tab-title">{t.settingsTitle}</h1>
         <span className="tab-spacer" />
       </div>
       <div className="tab-body">
 
         <section className="tab-card">
-          <div className="tab-card-title">Export</div>
+          <div className="tab-card-title">{t.language}</div>
           <div className="set-row" style={{ borderTop: "none", paddingTop: 0 }}>
             <div className="set-row-text">
-              <div className="set-row-label">Download Markdown backup</div>
-              <div className="set-row-sub">All your tasks exported as a .md file</div>
+              <div className="set-row-label">{t.language}</div>
+              <div className="set-row-sub">{t.languageSub}</div>
             </div>
-            <button className="btn-ghost" onClick={onExport}>Export</button>
+            <div className="tm-tabs" role="tablist">
+              <button
+                className={"tm-tab" + (lang === "en" ? " active" : "")}
+                onClick={() => setLang("en")}
+                role="tab"
+                aria-selected={lang === "en"}
+              >
+                English
+              </button>
+              <button
+                className={"tm-tab" + (lang === "de" ? " active" : "")}
+                onClick={() => setLang("de")}
+                role="tab"
+                aria-selected={lang === "de"}
+              >
+                Deutsch
+              </button>
+            </div>
           </div>
         </section>
 
         <section className="tab-card">
-          <div className="tab-card-title">AI Integration (MCP)</div>
+          <div className="tab-card-title">{t.exportTitle}</div>
+          <div className="set-row" style={{ borderTop: "none", paddingTop: 0 }}>
+            <div className="set-row-text">
+              <div className="set-row-label">{t.exportLabel}</div>
+              <div className="set-row-sub">{t.exportSub}</div>
+            </div>
+            <button className="btn-ghost" onClick={onExport}>{t.exportBtn}</button>
+          </div>
+        </section>
+
+        <section className="tab-card">
+          <div className="tab-card-title">{t.aiIntegration}</div>
           <McpServerInfo />
         </section>
 
         <section className="tab-card">
-          <div className="tab-card-title">Account</div>
+          <div className="tab-card-title">{t.autoRollover}</div>
           <div className="set-row" style={{ borderTop: "none", paddingTop: 0 }}>
             <div className="set-row-text">
-              <div className="set-row-label">Sign out</div>
-              <div className="set-row-sub">Sign out of your account on this device</div>
+              <div className="set-row-label">{t.autoRolloverLabel}</div>
+              <div className="set-row-sub">
+                {t.autoRolloverSub}
+              </div>
             </div>
-            <button className="btn-ghost" onClick={() => signOut({ redirectUrl: "/sign-in" })}>
-              Sign out
+            <button
+              className={"switch" + (autoRollover ? " on" : "")}
+              role="switch"
+              aria-checked={autoRollover}
+              aria-label={t.autoRollover}
+              onClick={toggleAutoRollover}
+            >
+              <span className="knob" />
             </button>
           </div>
-          <div className="set-row">
-            <div className="set-row-text">
-              <div className="set-row-label">Delete account</div>
-              <div className="set-row-sub">Permanently delete your account and all data. This cannot be undone.</div>
-            </div>
-            {!confirmDelete ? (
-              <button className="btn-ghost danger" onClick={() => setConfirmDelete(true)}>Delete</button>
-            ) : (
-              <div className="confirm">
-                <button className="btn-ghost" onClick={() => setConfirmDelete(false)} disabled={deleting}>Cancel</button>
-                <button className="btn-danger" onClick={handleDeleteAccount} disabled={deleting}>
-                  {deleting ? "Deleting…" : "Yes, delete"}
-                </button>
-              </div>
-            )}
-          </div>
-        </section>
-
-        <section className="tab-card">
-          <div className="tab-card-title">Controls</div>
-          <div className="set-row" style={{ borderTop: "none", paddingTop: 0 }}>
-            <div className="set-row-text">
-              <div className="set-row-label">Check circle</div>
-              <div className="set-row-sub">Mark a task as done or undone</div>
-            </div>
-          </div>
-          <div className="set-row">
-            <div className="set-row-text">
-              <div className="set-row-label">Double click / Double tap</div>
-              <div className="set-row-sub">Open the color picker for a task</div>
-            </div>
-          </div>
-          <div className="set-row">
-            <div className="set-row-text">
-              <div className="set-row-label">Drag (desktop)</div>
-              <div className="set-row-sub">Click and drag a task to move it to another day or the weekly column</div>
-            </div>
-          </div>
-          <div className="set-row">
-            <div className="set-row-text">
-              <div className="set-row-label">Long press (mobile)</div>
-              <div className="set-row-sub">Hold a task to start dragging it</div>
-            </div>
-          </div>
-          <div className="set-row">
-            <div className="set-row-text">
-              <div className="set-row-label">Trash icon</div>
-              <div className="set-row-sub">Delete a task — recoverable from trash for 30 days</div>
-            </div>
-          </div>
-          <div className="set-row">
-            <div className="set-row-text">
-              <div className="set-row-label">+ button</div>
-              <div className="set-row-sub">Add a new task to that day or weekly column</div>
-            </div>
-          </div>
-        </section>
-
-        <section className="tab-card about">
-          <div className="set-row-label">To Do Map</div>
-          <div className="set-row-sub" style={{ marginTop: 4 }}>Plan your year, one week at a time.</div>
         </section>
 
       </div>

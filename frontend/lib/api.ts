@@ -18,6 +18,12 @@ async function req<T>(
   return res.json();
 }
 
+// A task's planning level. NOTE: "week" is intentionally not here — the week
+// level is stored on the `is_weekly_objective` flag (the Weekly Objective
+// column in the weekly view), which predates this field. `scope` only
+// distinguishes the remaining buckets.
+export type TaskScope = "day" | "month" | "quarter" | "year";
+
 export type Task = {
   id: string;
   user_id: string;
@@ -27,6 +33,7 @@ export type Task = {
   color: string | null;
   position: number;
   is_weekly_objective: boolean;
+  scope: TaskScope;
   created_at: string;
 };
 
@@ -35,6 +42,10 @@ export type WeeklyObjective = {
   user_id: string;
   week_start: string;
   text: string;
+};
+
+export type Settings = {
+  auto_rollover: boolean;
 };
 
 export type DeletedTask = {
@@ -52,7 +63,7 @@ export function api(getToken: () => Promise<string | null>) {
       list: (start: string, end: string) =>
         req<{ data: Task[] }>(`/tasks?start=${start}&end=${end}`, { method: "GET" }, getToken),
 
-      create: (body: { date: string; text: string; color: string | null; position: number; is_weekly_objective: boolean }) =>
+      create: (body: { date: string; text: string; color: string | null; position: number; is_weekly_objective: boolean; scope?: TaskScope }) =>
         req<{ data: Task }>("/tasks", { method: "POST", body: JSON.stringify(body) }, getToken),
 
       update: (id: string, body: Partial<Pick<Task, "text" | "done" | "color" | "position" | "date">>) =>
@@ -61,7 +72,7 @@ export function api(getToken: () => Promise<string | null>) {
       delete: (id: string) =>
         req<{ data: string }>(`/tasks/${id}`, { method: "DELETE" }, getToken),
 
-      reorder: (updates: { id: string; date: string; position: number; is_weekly_objective?: boolean }[]) =>
+      reorder: (updates: { id: string; date: string; position: number; is_weekly_objective?: boolean; scope?: TaskScope }[]) =>
         req<{ data: string }>("/tasks/reorder", { method: "PATCH", body: JSON.stringify({ updates }) }, getToken),
     },
 
@@ -87,6 +98,14 @@ export function api(getToken: () => Promise<string | null>) {
     rollover: {
       run: () =>
         req<{ data: string; moved?: number }>("/rollover", { method: "POST" }, getToken),
+    },
+
+    settings: {
+      get: () =>
+        req<{ data: Settings }>("/settings", { method: "GET" }, getToken),
+
+      update: (body: Settings) =>
+        req<{ data: Settings }>("/settings", { method: "PUT", body: JSON.stringify(body) }, getToken),
     },
 
     account: {

@@ -5,17 +5,17 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import type { Task } from "@/lib/api";
 import TaskItem from "./TaskItem";
 import TaskInput from "./TaskInput";
+import { useI18n } from "@/lib/i18n";
 
 function toISO(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function monthSpanLabel(monday: Date, sunday: Date): string {
-  const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-  const a = MONTHS[monday.getMonth()];
-  const b = MONTHS[sunday.getMonth()];
-  if (a === b) return a.slice(0, 3) + " " + monday.getFullYear();
-  return a.slice(0, 3) + "–" + b.slice(0, 3) + " " + sunday.getFullYear();
+function monthSpanLabel(monday: Date, sunday: Date, monthsShort: string[]): string {
+  const a = monthsShort[monday.getMonth()];
+  const b = monthsShort[sunday.getMonth()];
+  if (a === b) return a + " " + monday.getFullYear();
+  return a + "–" + b + " " + sunday.getFullYear();
 }
 
 export default function WeeklyObjective({
@@ -41,6 +41,7 @@ export default function WeeklyObjective({
   onColorChange: (id: string, color: string | null) => void;
   onEdit: (id: string, text: string) => void;
 }) {
+  const { t } = useI18n();
   const mondayISO = toISO(monday);
   const { setNodeRef, isOver } = useDroppable({ id: "week:" + mondayISO });
 
@@ -54,8 +55,8 @@ export default function WeeklyObjective({
   return (
     <div ref={setNodeRef} className={cls}>
       <div className="tm-obj-head">
-        <span className="tm-weeknum">W{weekNum}</span>
-        <span className="tm-monthspan">{monthSpanLabel(monday, sunday)}</span>
+        <span className="tm-weeknum">{t.weekAbbr}{weekNum}</span>
+        <span className="tm-monthspan">{monthSpanLabel(monday, sunday, t.monthsShort)}</span>
       </div>
       <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
         <div className="tm-tasks">

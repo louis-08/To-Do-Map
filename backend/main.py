@@ -1,12 +1,13 @@
 from dotenv import load_dotenv
 load_dotenv()
 
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from routers import tasks, objectives, trash, rollover, export, account
+from routers import tasks, objectives, trash, rollover, export, account, settings
 from mcp_server.server import mcp, PROTECTED_RESOURCE_METADATA
 
 mcp_app = mcp.streamable_http_app()
@@ -21,9 +22,15 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="TodoMap API", lifespan=lifespan)
 
+_allowed_origins = [
+    o.strip()
+    for o in os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    if o.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,6 +42,7 @@ app.include_router(trash.router)
 app.include_router(rollover.router)
 app.include_router(export.router)
 app.include_router(account.router)
+app.include_router(settings.router)
 
 # MCP server (OAuth-protected) mounted at /mcp
 app.mount("/mcp", mcp_app)

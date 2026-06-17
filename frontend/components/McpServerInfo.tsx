@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useI18n } from "@/lib/i18n";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 type Status = "checking" | "online" | "offline";
 
 export default function McpServerInfo() {
+  const { t } = useI18n();
   const [status, setStatus] = useState<Status>("checking");
   const [mcpUrl, setMcpUrl] = useState(`${BASE}/mcp`);
   const [copied, setCopied] = useState(false);
@@ -51,10 +53,10 @@ export default function McpServerInfo() {
         : "var(--muted)";
   const label =
     status === "online"
-      ? "Server online"
+      ? t.serverOnline
       : status === "offline"
-        ? "Server not reachable"
-        : "Checking…";
+        ? t.serverOffline
+        : t.serverChecking;
 
   return (
     <div className="flex flex-col gap-3">
@@ -73,9 +75,7 @@ export default function McpServerInfo() {
       </div>
 
       <p className="text-xs" style={{ color: "var(--muted)" }}>
-        {status === "offline"
-          ? "The TodoMap MCP server isn't responding. Make sure the backend is running, then reload this page."
-          : "Connect Claude (or any MCP client) to view and manage your tasks with AI."}
+        {status === "offline" ? t.mcpOfflineMsg : t.mcpOnlineMsg}
       </p>
 
       <div className="flex items-stretch gap-2">
@@ -90,19 +90,19 @@ export default function McpServerInfo() {
           className="text-xs font-semibold px-3 rounded shrink-0"
           style={{ border: "1px solid var(--line-strong)", background: "#fff" }}
         >
-          {copied ? "Copied" : "Copy"}
+          {copied ? t.copied : t.copy}
         </button>
       </div>
 
       <ol className="flex flex-col gap-1.5 text-xs" style={{ color: "var(--ink-soft)" }}>
         <li>
-          1. In Claude, open <strong>Settings → Connectors → Add custom connector</strong>.
+          1. {t.mcpStep1Pre}<strong>{t.mcpStep1Strong}</strong>{t.mcpStep1Post}
         </li>
-        <li>2. Paste the URL above as the remote MCP server.</li>
+        <li>2. {t.mcpStep2}</li>
         <li>
-          3. Click <strong>Connect</strong> and sign in with this same account to authorize access.
+          3. {t.mcpStep3Pre}<strong>{t.mcpStep3Strong}</strong>{t.mcpStep3Post}
         </li>
-        <li>4. Ask Claude to list, add, or complete tasks — it works on your TodoMap directly.</li>
+        <li>4. {t.mcpStep4}</li>
       </ol>
     </div>
   );

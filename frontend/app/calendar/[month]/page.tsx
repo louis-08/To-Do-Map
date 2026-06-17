@@ -3,8 +3,9 @@
 import { use, useCallback, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, type Task } from "@/lib/api";
+import { api, type Task, type TaskScope } from "@/lib/api";
 import MonthView from "@/components/MonthView";
+import { useI18n } from "@/lib/i18n";
 
 const FETCH_START = "2026-01-01";
 const FETCH_END   = "2031-12-31";
@@ -15,6 +16,7 @@ type TaskCache = { data: Task[] } | undefined;
 export default function CalendarPage({ params }: { params: Promise<{ month: string }> }) {
   use(params);
   const { getToken } = useAuth();
+  const { t } = useI18n();
   const qc = useQueryClient();
   const a = api(getToken as () => Promise<string | null>);
 
@@ -25,7 +27,10 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
   });
 
   useEffect(() => {
-    a.rollover.run().then(() => qc.invalidateQueries({ queryKey: ["tasks"] }));
+    a.settings.get().then((s) => {
+      if (!s.data.auto_rollover) return;
+      a.rollover.run().then(() => qc.invalidateQueries({ queryKey: ["tasks"] }));
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -37,12 +42,12 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
   }
 
   const addTask = useMutation({
-    mutationFn: ({ date, text, isWeekly }: { date: string; text: string; isWeekly: boolean }) => {
+    mutationFn: ({ date, text, isWeekly, scope }: { date: string; text: string; isWeekly: boolean; scope: TaskScope }) => {
       const pos = (tasksQuery.data?.data ?? [])
-        .filter((t) => t.date === date && t.is_weekly_objective === isWeekly).length;
-      return a.tasks.create({ date, text, color: null, position: pos, is_weekly_objective: isWeekly });
+        .filter((t) => t.date === date && t.scope === scope && t.is_weekly_objective === isWeekly).length;
+      return a.tasks.create({ date, text, color: null, position: pos, is_weekly_objective: isWeekly, scope });
     },
-    onMutate: async ({ date, text, isWeekly }) => {
+    onMutate: async ({ date, text, isWeekly, scope }) => {
       await qc.cancelQueries({ queryKey: ["tasks"] });
       const previous = snapshotTasks();
       const optimistic: Task = {
@@ -52,8 +57,9 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
         text,
         done: false,
         color: null,
-        position: (tasksQuery.data?.data ?? []).filter((t) => t.date === date && t.is_weekly_objective === isWeekly).length,
+        position: (tasksQuery.data?.data ?? []).filter((t) => t.date === date && t.scope === scope && t.is_weekly_objective === isWeekly).length,
         is_weekly_objective: isWeekly,
+        scope,
         created_at: new Date().toISOString(),
       };
       patchTasks((prev) => [...prev, optimistic]);
@@ -112,8 +118,27 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
   });
 
   const reorderTasks = useMutation({
-    mutationFn: (updates: { id: string; date: string; position: number; is_weekly_objective?: boolean }[]) =>
+    mutationFn: (updates: { id: string; date: string; position: number; is_weekly_objective?: boolean; scope?: TaskScope }[]) =>
       a.tasks.reorder(updates),
+    onMutate: async (updates) => {
+      await qc.cancelQueries({ queryKey: ["tasks"] });
+      const previous = snapshotTasks();
+      const byId = new Map(updates.map((u) => [u.id, u]));
+      patchTasks((prev) => prev.map((t) => {
+        const u = byId.get(t.id);
+        return u
+          ? {
+              ...t,
+              date: u.date,
+              position: u.position,
+              is_weekly_objective: u.is_weekly_objective ?? t.is_weekly_objective,
+              scope: u.scope ?? t.scope,
+            }
+          : t;
+      }));
+      return { previous };
+    },
+    onError: (_e, _v, ctx) => qc.setQueryData(TASKS_KEY, ctx?.previous),
     onSettled: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
   });
 
@@ -127,11 +152,23 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
   const { mutate: reorderMutate } = reorderTasks;
 
   const handleAddTask = useCallback((date: string, text: string) => {
-    addMutate({ date, text, isWeekly: false });
+    addMutate({ date, text, isWeekly: false, scope: "day" });
   }, [addMutate]);
 
   const handleAddWeeklyTask = useCallback((mondayISO: string, text: string) => {
-    addMutate({ date: mondayISO, text, isWeekly: true });
+    addMutate({ date: mondayISO, text, isWeekly: true, scope: "day" });
+  }, [addMutate]);
+
+  const handleAddMonthTask = useCallback((monthISO: string, text: string) => {
+    addMutate({ date: monthISO, text, isWeekly: false, scope: "month" });
+  }, [addMutate]);
+
+  const handleAddQuarterTask = useCallback((quarterISO: string, text: string) => {
+    addMutate({ date: quarterISO, text, isWeekly: false, scope: "quarter" });
+  }, [addMutate]);
+
+  const handleAddYearTask = useCallback((yearISO: string, text: string) => {
+    addMutate({ date: yearISO, text, isWeekly: false, scope: "year" });
   }, [addMutate]);
 
   const handleToggle = useCallback((id: string) => {
@@ -151,7 +188,7 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
     colorMutate({ id, color });
   }, [colorMutate]);
 
-  const handleReorder = useCallback((updates: { id: string; date: string; position: number; is_weekly_objective?: boolean }[]) => {
+  const handleReorder = useCallback((updates: { id: string; date: string; position: number; is_weekly_objective?: boolean; scope?: TaskScope }[]) => {
     reorderMutate(updates);
   }, [reorderMutate]);
 
@@ -169,7 +206,7 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
   if (tasksQuery.isLoading) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", color: "var(--muted)", fontFamily: "'Hanken Grotesk', system-ui, sans-serif" }}>
-        Loading…
+        {t.loading}
       </div>
     );
   }
@@ -179,6 +216,9 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
       tasks={tasks}
       onAddTask={handleAddTask}
       onAddWeeklyTask={handleAddWeeklyTask}
+      onAddMonthTask={handleAddMonthTask}
+      onAddQuarterTask={handleAddQuarterTask}
+      onAddYearTask={handleAddYearTask}
       onToggle={handleToggle}
       onDelete={handleDelete}
       onColorChange={handleColorChange}

@@ -5,6 +5,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { Task } from "@/lib/api";
 import ColorPicker, { TASK_COLORS } from "./ColorPicker";
+import { useI18n } from "@/lib/i18n";
 
 function TrashIcon() {
   return (
@@ -41,6 +42,7 @@ export default function TaskItem({
   onColorChange: (color: string | null) => void;
   onEdit: (text: string) => void;
 }) {
+  const { t } = useI18n();
   const [menu, setMenu] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editVal, setEditVal] = useState(task.text);
@@ -120,7 +122,7 @@ export default function TaskItem({
         className={"tm-check" + (task.done ? " is-done" : "")}
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => { e.stopPropagation(); setActionsVisible(false); onToggle(); }}
-        aria-label={task.done ? "Mark incomplete" : "Mark complete"}
+        aria-label={task.done ? t.markIncomplete : t.markComplete}
       >
         <svg viewBox="0 0 16 16" width={11} height={11} aria-hidden="true">
           <path d="M4.3 8.4L6.7 10.8L11.7 5.2" fill="none" stroke="currentColor"
@@ -150,7 +152,7 @@ export default function TaskItem({
         className="tm-task-color"
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => { e.stopPropagation(); setMenu(true); setActionsVisible(false); }}
-        aria-label="Change color"
+        aria-label={t.changeColor}
       >
         <ColorIcon color={task.color ?? null} />
       </button>
@@ -159,7 +161,7 @@ export default function TaskItem({
         className="tm-task-del"
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => { e.stopPropagation(); onDelete(); }}
-        aria-label="Delete task"
+        aria-label={t.deleteTask}
       >
         <TrashIcon />
       </button>

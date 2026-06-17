@@ -18,8 +18,9 @@ import WeekRow from "./WeekRow";
 import TopBar from "./TopBar";
 import ProfileView from "./ProfileView";
 import SettingsView from "./SettingsView";
+import YearView from "./YearView";
+import { useI18n } from "@/lib/i18n";
 
-const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const LOAD_SIZE = 4;
 
 function toISO(d: Date) {
@@ -63,12 +64,15 @@ function buildWeeks(startYear = 2026, numYears = 6) {
 const ALL_WEEKS = buildWeeks(2026, 6);
 const CURRENT_WEEK_IDX = Math.max(0, ALL_WEEKS.findIndex((w) => w.isCurrent));
 
-type ViewType = "board" | "profile" | "settings";
+type ViewType = "board" | "year" | "profile" | "settings";
 
 export default function MonthView({
   tasks: initialTasks,
   onAddTask,
   onAddWeeklyTask,
+  onAddMonthTask,
+  onAddQuarterTask,
+  onAddYearTask,
   onToggle,
   onDelete,
   onColorChange,
@@ -79,17 +83,22 @@ export default function MonthView({
   tasks: Task[];
   onAddTask: (date: string, text: string) => void;
   onAddWeeklyTask: (mondayISO: string, text: string) => void;
+  onAddMonthTask: (monthISO: string, text: string) => void;
+  onAddQuarterTask: (quarterISO: string, text: string) => void;
+  onAddYearTask: (yearISO: string, text: string) => void;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onColorChange: (id: string, color: string | null) => void;
   onEdit: (id: string, text: string) => void;
-  onReorder: (updates: { id: string; date: string; position: number; is_weekly_objective?: boolean }[]) => void;
+  onReorder: (updates: { id: string; date: string; position: number; is_weekly_objective?: boolean; scope?: Task["scope"] }[]) => void;
   onExport: () => void;
 }) {
+  const { t } = useI18n();
   const [tasks, setTasks] = useState(initialTasks);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [view, setView] = useState<ViewType>("board");
   const [visibleYear, setVisibleYear] = useState(() => new Date().getFullYear());
+  const [yearViewYear, setYearViewYear] = useState(() => new Date().getFullYear());
   const [nowMondayTime, setNowMondayTime] = useState(() => mondayOf(new Date()).getTime());
 
   // ALL_WEEKS is built once at module load, so its baked `isCurrent` goes stale
@@ -137,6 +146,9 @@ export default function MonthView({
 
   useEffect(() => { setTasks(initialTasks); }, [initialTasks]);
 
+  // In the year view, the topbar year pill reflects the year being viewed.
+  useEffect(() => { if (view === "year") setVisibleYear(yearViewYear); }, [view, yearViewYear]);
+
   const visibleWeeks = useMemo(() => ALL_WEEKS.slice(startIdx, endIdx + 1), [startIdx, endIdx]);
   const activeTask = tasks.find((t) => t.id === activeId);
 
@@ -144,6 +156,7 @@ export default function MonthView({
   const weekTasksMap = useMemo(() => {
     const byDate = new Map<string, Task[]>();
     for (const t of tasks) {
+      if (t.scope === "month" || t.scope === "quarter" || t.scope === "year") continue;
       if (!byDate.has(t.date)) byDate.set(t.date, []);
       byDate.get(t.date)!.push(t);
     }
@@ -268,12 +281,12 @@ export default function MonthView({
     for (const w of visibleWeeks) {
       const week = { ...w, isCurrent: w.monday.getTime() === nowMondayTime };
       const key = week.monday.getMonth() + "-" + week.year;
-      const divider = key !== prevMonthKey ? MONTHS[week.monday.getMonth()] + " " + week.year : null;
+      const divider = key !== prevMonthKey ? t.months[week.monday.getMonth()] + " " + week.year : null;
       result.push({ week, divider });
       prevMonthKey = key;
     }
     return result;
-  }, [visibleWeeks, nowMondayTime]);
+  }, [visibleWeeks, nowMondayTime, t]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100dvh" }}>
@@ -291,15 +304,15 @@ export default function MonthView({
         <div className="tm-scroll" ref={scrollerRef} onScroll={onScroll} style={{ flex: "1 1 auto" }}>
           <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
             <div className="tm-colhead">
-              {["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].map((n, i) => (
+              {t.daysFull.map((n, i) => (
                 <div key={n} className={"tm-col" + (i >= 5 ? " is-weekend" : "")}><span>{n}</span></div>
               ))}
-              <div className="tm-col tm-col-obj"><span>Weekly Objective</span></div>
+              <div className="tm-col tm-col-obj"><span>{t.weeklyObjective}</span></div>
             </div>
 
             {startIdx > 0 && (
               <div className="tm-load-band">
-                <button className="tm-load-btn" onClick={loadEarlier}>↑ Load earlier weeks</button>
+                <button className="tm-load-btn" onClick={loadEarlier}>{t.loadEarlier}</button>
               </div>
             )}
 
@@ -322,7 +335,7 @@ export default function MonthView({
 
             {endIdx < ALL_WEEKS.length - 1 && (
               <div className="tm-load-band">
-                <button className="tm-load-btn" onClick={loadLater}>↓ Load later weeks</button>
+                <button className="tm-load-btn" onClick={loadLater}>{t.loadLater}</button>
               </div>
             )}
 
@@ -334,6 +347,25 @@ export default function MonthView({
               )}
             </DragOverlay>
           </DndContext>
+        </div>
+      )}
+
+      {view === "year" && (
+        <div className="tm-scroll" style={{ flex: "1 1 auto" }}>
+          <YearView
+            year={yearViewYear}
+            onYearChange={setYearViewYear}
+            tasks={tasks}
+            setTasks={setTasks}
+            onAddMonthTask={onAddMonthTask}
+            onAddQuarterTask={onAddQuarterTask}
+            onAddYearTask={onAddYearTask}
+            onToggle={onToggle}
+            onDelete={onDelete}
+            onColorChange={onColorChange}
+            onEdit={onEdit}
+            onReorder={onReorder}
+          />
         </div>
       )}
 

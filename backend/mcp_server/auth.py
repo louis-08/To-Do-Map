@@ -10,23 +10,22 @@ from jose import jwt, JWTError
 
 from mcp.server.auth.provider import AccessToken, TokenVerifier
 
-from auth import get_jwks  # backend/auth.py — shared JWKS cache
+from auth import find_signing_key, issuer  # backend/auth.py — shared JWKS
 
 
 class ClerkTokenVerifier(TokenVerifier):
     async def verify_token(self, token: str) -> AccessToken | None:
         try:
-            jwks = await get_jwks()
             header = jwt.get_unverified_header(token)
-            key = next(
-                (k for k in jwks["keys"] if k["kid"] == header["kid"]), None
-            )
+            key = await find_signing_key(header.get("kid"))
             if key is None:
                 return None
-            # verify_aud is off because Clerk OAuth tokens carry an `aud` we
-            # don't pin yet; we tighten this in Step 3 once we see a real token.
+            # Issuer is pinned to our Clerk instance, blocking tokens from any
+            # other issuer. Audience is left unpinned because Clerk OAuth
+            # tokens' `aud` value isn't yet confirmed against this resource.
             payload = jwt.decode(
-                token, key, algorithms=["RS256"], options={"verify_aud": False}
+                token, key, algorithms=["RS256"], issuer=issuer(),
+                options={"verify_aud": False},
             )
         except (JWTError, KeyError):
             return None

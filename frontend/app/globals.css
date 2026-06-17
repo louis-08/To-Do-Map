@@ -335,3 +335,58 @@ body {
 .btn-danger { border: none; background: #c0392b; color: #fff; font-family: inherit; font-size: 13px; font-weight: 600; padding: 9px 16px; border-radius: 999px; cursor: pointer; }
 .confirm { display: inline-flex; gap: 8px; align-items: center; }
 .tab-card.about { text-align: center; color: var(--ink-soft); }
+
+/* ---------- view tabs (week / year) ---------- */
+.tm-tabs {
+  display: flex; gap: 2px; padding: 3px;
+  background: #f1f1f3; border: 1px solid var(--line-strong); border-radius: 999px;
+}
+.tm-tab {
+  font-family: inherit; font-size: 13px; font-weight: 600; letter-spacing: -0.005em;
+  color: var(--ink-soft); background: transparent; border: none; border-radius: 999px;
+  padding: 6px 16px; cursor: pointer;
+  transition: background .12s ease, color .12s ease, box-shadow .12s ease;
+}
+.tm-tab:hover { color: var(--ink); }
+.tm-tab.active {
+  color: var(--ink); background: var(--surface);
+  box-shadow: 0 1px 2px rgba(16,16,26,.08);
+}
+
+/* ---------- year view ---------- */
+.tm-year { padding-bottom: 48px; }
+.tm-year-head {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  padding: 22px 24px 4px;
+}
+.tm-year-title { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+.tm-year-nav {
+  width: 34px; height: 34px; border-radius: 9px;
+  border: 1px solid var(--line-strong); background: #fff; color: var(--ink-soft);
+  font-size: 19px; line-height: 1; cursor: pointer; display: grid; place-items: center;
+  transition: background .12s ease, color .12s ease;
+}
+.tm-year-nav:hover { background: #f3f3f5; color: var(--ink); }
+
+.tm-year-body {
+  display: flex; align-items: stretch; gap: 16px;
+  width: 100%; padding: 4px 24px 0;
+}
+.tm-year-main { flex: 1 1 auto; min-width: 0; }
+.tm-quarter {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(160px, 1fr);
+  border-top: 1px solid var(--line);
+}
+.tm-quarter > .tm-cell:first-child { border-left: 1px solid var(--line); }
+.tm-quarter-obj.is-current { background: var(--today-bg); }
+.tm-quarter-obj.is-current .tm-weeknum { color: color-mix(in srgb, var(--accent) 60%, var(--ink)); }
+
+.tm-year-side { flex: 0 0 280px; display: flex; }
+.tm-year-obj { flex: 1 1 auto; }
+.tm-year-obj.is-current { background: var(--today-bg); }
+.tm-year-obj.is-current .tm-weeknum { color: color-mix(in srgb, var(--accent) 60%, var(--ink)); }
+
+@media (max-width: 760px) {
+  .tm-year-body { flex-direction: column; }
+  .tm-year-side { flex-basis: auto; }
+}

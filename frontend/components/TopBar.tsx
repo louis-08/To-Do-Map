@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import { useI18n } from "@/lib/i18n";
 
-type View = "board" | "profile" | "settings";
+type View = "board" | "year" | "profile" | "settings";
 
 function IconUser() {
   return (
@@ -33,6 +34,7 @@ export default function TopBar({
   onTodayClick: () => void;
   onViewChange: (v: View) => void;
 }) {
+  const { t } = useI18n();
   return (
     <header className="tm-topbar">
       <div className="tm-brand">
@@ -41,19 +43,38 @@ export default function TopBar({
         <span className="tm-year-pill">{visibleYear}</span>
       </div>
 
+      <div className="tm-tabs" role="tablist">
+        <button
+          className={"tm-tab" + (view === "board" ? " active" : "")}
+          onClick={() => onViewChange("board")}
+          role="tab"
+          aria-selected={view === "board"}
+        >
+          {t.week}
+        </button>
+        <button
+          className={"tm-tab" + (view === "year" ? " active" : "")}
+          onClick={() => onViewChange("year")}
+          role="tab"
+          aria-selected={view === "year"}
+        >
+          {t.year}
+        </button>
+      </div>
+
 <div className="tm-navbtns">
-        <button className="tm-today-btn" onClick={onTodayClick}>Today</button>
+        <button className="tm-today-btn" onClick={onTodayClick}>{t.today}</button>
         <button
           className={"tm-iconbtn" + (view === "profile" ? " active" : "")}
           onClick={() => onViewChange(view === "profile" ? "board" : "profile")}
-          title="Profile"
+          title={t.profileTitle}
         >
           <IconUser />
         </button>
         <button
           className={"tm-iconbtn" + (view === "settings" ? " active" : "")}
           onClick={() => onViewChange(view === "settings" ? "board" : "settings")}
-          title="Settings"
+          title={t.settingsTitle}
         >
           <IconGear />
         </button>

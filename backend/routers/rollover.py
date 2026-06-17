@@ -26,6 +26,7 @@ async def rollover(user_id: str = Depends(get_current_user)):
         .eq("user_id", user_id)
         .eq("done", False)
         .eq("is_weekly_objective", False)
+        .eq("scope", "day")
         .lt("date", today)
         .order("date")
         .order("position")

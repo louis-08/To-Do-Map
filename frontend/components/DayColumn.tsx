@@ -5,8 +5,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import type { Task } from "@/lib/api";
 import TaskItem from "./TaskItem";
 import TaskInput from "./TaskInput";
-
-const DAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+import { useI18n } from "@/lib/i18n";
 
 function dmKey(d: Date) {
   return String(d.getDate()).padStart(2, "0") + "." + String(d.getMonth() + 1).padStart(2, "0");
@@ -39,6 +38,7 @@ export default function DayColumn({
   onColorChange: (id: string, color: string | null) => void;
   onEdit: (id: string, text: string) => void;
 }) {
+  const { t } = useI18n();
   const isoDate = toISO(date);
   const { setNodeRef, isOver } = useDroppable({ id: isoDate });
 
@@ -52,9 +52,9 @@ export default function DayColumn({
   return (
     <div ref={setNodeRef} className={cls}>
       <div className="tm-cell-head">
-        <span className="tm-wd">{DAY_SHORT[dayIndex]}</span>
+        <span className="tm-wd">{t.daysShort[dayIndex]}</span>
         <span className="tm-date">{dmKey(date)}</span>
-        {state === "today" && <span className="tm-today-pill">Today</span>}
+        {state === "today" && <span className="tm-today-pill">{t.todayPill}</span>}
       </div>
 
       <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>

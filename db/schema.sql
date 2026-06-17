@@ -34,3 +34,8 @@ CREATE TABLE rollover_log (
   user_id    TEXT PRIMARY KEY,
   last_run   DATE NOT NULL
 );
+
+CREATE TABLE settings (
+  user_id        TEXT PRIMARY KEY,
+  auto_rollover  BOOLEAN NOT NULL DEFAULT FALSE
+);
