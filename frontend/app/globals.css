@@ -163,7 +163,7 @@ body {
 .state-today .tm-task { background: #fff; border-color: color-mix(in srgb, var(--accent) 45%, #fff); }
 .state-past .tm-task { background: #efeff1; border-color: #e4e4e8; }
 .tm-task.is-dragging { opacity: .4; }
-.tm-task-text { font-size: var(--task-fs); line-height: 1.35; color: var(--ink); flex: 1 1 auto; word-break: break-word; padding-right: 2px; }
+.tm-task-text { font-size: var(--task-fs); line-height: 1.35; color: var(--ink); flex: 1 1 auto; word-break: break-word; padding-right: 24px; }
 .tm-task.is-done .tm-task-text { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
 
 .tm-check {
@@ -177,26 +177,59 @@ body {
 .tm-check:hover { border-color: var(--check); }
 .tm-check.is-done { background: var(--check); border-color: var(--check-edge); color: #fff; }
 
-.tm-task-del {
+/* Three-dot button — opens the task options popup. Always present (a single
+   affordance), a touch dimmer until the card is hovered on desktop. */
+.tm-task-menu-btn {
   position: absolute; top: 50%; right: 4px; transform: translateY(-50%);
   width: 24px; height: 24px; border: none; background: transparent;
-  color: var(--muted); cursor: pointer; opacity: 0; display: grid; place-items: center;
-  border-radius: 6px; transition: opacity .12s ease, background .12s ease;
-}
-.tm-task:hover .tm-task-del,
-.tm-task.is-actions .tm-task-del { opacity: 1; }
-.tm-task-del:hover { background: rgba(0,0,0,.1); color: #c0392b; }
-
-.tm-task-color {
-  position: absolute; top: 50%; right: 30px; transform: translateY(-50%);
-  width: 24px; height: 24px; border: none; background: transparent;
-  color: var(--muted); cursor: pointer; opacity: 0; display: grid; place-items: center;
+  color: var(--muted); cursor: pointer; opacity: .55; display: grid; place-items: center;
   border-radius: 6px; padding: 0;
   transition: opacity .12s ease, background .12s ease;
 }
-.tm-task:hover .tm-task-color,
-.tm-task.is-actions .tm-task-color { opacity: 1; }
-.tm-task-color:hover { background: rgba(0,0,0,.1); }
+.tm-task:hover .tm-task-menu-btn { opacity: 1; }
+.tm-task-menu-btn:hover { background: rgba(0,0,0,.1); opacity: 1; }
+
+/* ---------- reminder menu ---------- */
+.tm-reminder-menu {
+  position: absolute; z-index: 30; top: calc(100% + 5px); right: 4px;
+  display: flex; flex-direction: column; gap: 5px; padding: 8px;
+  width: 210px;
+  background: #fff; border: 1px solid var(--line-strong); border-radius: 11px;
+  box-shadow: 0 8px 22px rgba(16,16,26,.16);
+  cursor: default;
+}
+.tm-reminder-current { font-size: 11px; color: var(--muted); padding: 1px 2px 3px; }
+.tm-reminder-opt {
+  text-align: left; font-family: inherit; font-size: 12.5px; color: var(--ink);
+  background: var(--canvas); border: 1px solid var(--line-strong); border-radius: 7px;
+  padding: 6px 9px; cursor: pointer; transition: background .12s ease;
+}
+.tm-reminder-opt:hover:not(:disabled) { background: var(--line); }
+.tm-reminder-opt:disabled { opacity: .5; cursor: default; }
+.tm-reminder-custom { display: flex; gap: 5px; margin-top: 1px; }
+.tm-reminder-input {
+  flex: 1 1 auto; min-width: 0; font-family: inherit; font-size: 11.5px; color: var(--ink);
+  border: 1px solid var(--line-strong); border-radius: 7px; padding: 5px 6px; background: #fff;
+}
+.tm-reminder-btn {
+  font-family: inherit; font-size: 12px; font-weight: 600; color: #fff;
+  background: var(--check); border: none; border-radius: 7px; padding: 5px 10px; cursor: pointer;
+}
+.tm-reminder-btn:disabled { opacity: .5; cursor: default; }
+.tm-reminder-remove {
+  font-family: inherit; font-size: 12px; color: #c0392b; background: transparent;
+  border: none; padding: 4px 2px 1px; cursor: pointer; text-align: left;
+}
+.tm-reminder-remove:disabled { opacity: .5; cursor: default; }
+.tm-reminder-note-title { font-size: 12.5px; font-weight: 700; color: var(--ink); margin-bottom: 2px; }
+.tm-reminder-note-text { font-size: 12px; color: var(--ink-soft); line-height: 1.4; }
+.tm-reminder-steps { margin: 4px 0 6px; padding-left: 18px; font-size: 12px; color: var(--ink-soft); line-height: 1.45; }
+.tm-reminder-steps li { margin-bottom: 3px; }
+/* Inside the task options modal the picker is laid out in normal flow. */
+.tm-reminder-embedded {
+  position: static; width: auto; padding: 0;
+  border: none; box-shadow: none; background: transparent;
+}
 
 .tm-task-edit {
   flex: 1 1 auto; border: none; background: transparent;
@@ -217,6 +250,46 @@ body {
 }
 .tm-color-sw:hover { transform: scale(1.12); }
 .tm-color-sw.is-sel { box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px var(--ink); }
+
+/* ---------- task options modal ---------- */
+.tm-modal-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(16,16,26,.38);
+  display: grid; place-items: center; padding: 20px;
+}
+.tm-modal {
+  width: 100%; max-width: 300px; cursor: default;
+  background: #fff; border: 1px solid var(--line-strong); border-radius: 16px;
+  box-shadow: 0 18px 50px rgba(16,16,26,.28); overflow: hidden;
+}
+.tm-modal-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; border-bottom: 1px solid var(--line);
+}
+.tm-modal-title {
+  flex: 1 1 auto; min-width: 0; text-align: center;
+  font-size: 13px; font-weight: 600; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tm-modal-nav {
+  flex: 0 0 auto; width: 28px; height: 28px; padding: 0;
+  border: none; background: transparent; color: var(--muted); cursor: pointer;
+  border-radius: 7px; display: grid; place-items: center; transition: background .12s ease;
+}
+.tm-modal-nav:hover { background: rgba(0,0,0,.07); }
+.tm-modal-nav-spacer { flex: 0 0 auto; width: 28px; height: 28px; }
+.tm-modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px; }
+.tm-modal-opt {
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  padding: 15px 8px; font-family: inherit; font-size: 12.5px; color: var(--ink);
+  background: var(--canvas); border: 1px solid var(--line-strong); border-radius: 11px;
+  cursor: pointer; transition: background .12s ease, color .12s ease, border-color .12s ease;
+}
+.tm-modal-opt:hover { background: var(--line); }
+.tm-modal-opt.is-danger:hover { background: #fde7e4; border-color: #e5604d; color: #c0392b; }
+.tm-modal-body { padding: 14px 12px; }
+.tm-modal-colors { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; padding: 4px; }
+.tm-modal-colors .tm-color-sw { width: 28px; height: 28px; }
 
 /* ---------- add task ---------- */
 .tm-add {

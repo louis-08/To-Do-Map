@@ -1,23 +1,46 @@
 from dotenv import load_dotenv
 load_dotenv()
 
+import asyncio
+import logging
 import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from routers import tasks, objectives, trash, rollover, export, account, settings
+from routers import tasks, objectives, trash, rollover, export, account, settings, push
 from mcp_server.server import mcp, PROTECTED_RESOURCE_METADATA
+from notifications import dispatch_due_reminders
 
 mcp_app = mcp.streamable_http_app()
+
+log = logging.getLogger("scheduler")
+REMINDER_POLL_SECONDS = 60
+
+
+async def _reminder_loop():
+    """Poll for due reminders forever. Runs blocking DB/push work off the event
+    loop so it never stalls request handling."""
+    while True:
+        try:
+            sent = await asyncio.to_thread(dispatch_due_reminders)
+            if sent:
+                log.info("Dispatched %d reminder(s)", sent)
+        except Exception as e:  # noqa: BLE001 — keep the loop alive on any error
+            log.warning("Reminder loop error: %s", e)
+        await asyncio.sleep(REMINDER_POLL_SECONDS)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Streamable HTTP needs its session manager running for the app's lifetime.
     async with mcp.session_manager.run():
-        yield
+        reminder_task = asyncio.create_task(_reminder_loop())
+        try:
+            yield
+        finally:
+            reminder_task.cancel()
 
 
 app = FastAPI(title="TodoMap API", lifespan=lifespan)
@@ -43,6 +66,7 @@ app.include_router(rollover.router)
 app.include_router(export.router)
 app.include_router(account.router)
 app.include_router(settings.router)
+app.include_router(push.router)
 
 # MCP server (OAuth-protected) mounted at /mcp
 app.mount("/mcp", mcp_app)

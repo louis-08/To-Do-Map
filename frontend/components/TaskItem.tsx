@@ -4,27 +4,16 @@ import { useState, useRef, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { Task } from "@/lib/api";
-import ColorPicker, { TASK_COLORS } from "./ColorPicker";
+import { TASK_COLORS } from "./ColorPicker";
+import TaskMenu from "./TaskMenu";
 import { useI18n } from "@/lib/i18n";
 
-function TrashIcon() {
+function DotsIcon() {
   return (
-    <svg viewBox="0 0 16 16" width={14} height={14} aria-hidden="true">
-      <path d="M3 4.4h10M6.4 4.4V3.2c0-.45.35-.8.8-.8h1.6c.45 0 .8.35.8.8v1.2M4.5 4.4l.45 8.1c.03.5.44.9.95.9h4.2c.51 0 .92-.4.95-.9l.45-8.1"
-            fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M6.7 6.9v3.8M9.3 6.9v3.8" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function ColorIcon({ color }: { color: string | null }) {
-  const entry = TASK_COLORS.find((c) => c.key === color);
-  const dot = entry?.dot ?? "#c2c2c8";
-  const bg = entry?.bg ?? "";
-  return (
-    <svg viewBox="0 0 16 16" width={14} height={14} aria-hidden="true">
-      <circle cx="8" cy="8" r="5.2" fill={entry ? bg : "none"} stroke={dot} strokeWidth="1.5" />
-      {entry && <circle cx="8" cy="8" r="2.2" fill={dot} />}
+    <svg viewBox="0 0 16 16" width={16} height={16} aria-hidden="true">
+      <circle cx="8" cy="3.2" r="1.35" fill="currentColor" />
+      <circle cx="8" cy="8" r="1.35" fill="currentColor" />
+      <circle cx="8" cy="12.8" r="1.35" fill="currentColor" />
     </svg>
   );
 }
@@ -43,10 +32,9 @@ export default function TaskItem({
   onEdit: (text: string) => void;
 }) {
   const { t } = useI18n();
-  const [menu, setMenu] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editVal, setEditVal] = useState(task.text);
-  const [actionsVisible, setActionsVisible] = useState(false);
   const editRef = useRef<HTMLInputElement>(null);
   const lastTapRef = useRef(0);
   const movedRef = useRef(false);
@@ -69,11 +57,6 @@ export default function TaskItem({
 
   const style = { transform: CSS.Transform.toString(transform), transition };
 
-  function startEditing() {
-    setEditing(true);
-    setActionsVisible(false);
-  }
-
   function commitEdit() {
     const trimmed = editVal.trim();
     if (trimmed && trimmed !== task.text) onEdit(trimmed);
@@ -90,7 +73,7 @@ export default function TaskItem({
     const now = Date.now();
     if (now - lastTapRef.current < 300) {
       e.preventDefault();
-      startEditing();
+      setEditing(true);
       lastTapRef.current = 0;
     } else {
       lastTapRef.current = now;
@@ -102,7 +85,6 @@ export default function TaskItem({
     task.done ? "is-done" : "",
     isDragging ? "is-dragging" : "",
     colorStyle ? "is-colored" : "",
-    actionsVisible ? "is-actions" : "",
   ].filter(Boolean).join(" ");
 
   return (
@@ -112,8 +94,7 @@ export default function TaskItem({
       className={cls}
       {...attributes}
       {...(editing ? {} : listeners)}
-      onClick={() => { if (!editing) setActionsVisible((v) => !v); }}
-      onDoubleClick={(e) => { e.preventDefault(); startEditing(); }}
+      onDoubleClick={(e) => { e.preventDefault(); setEditing(true); }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -121,7 +102,7 @@ export default function TaskItem({
       <button
         className={"tm-check" + (task.done ? " is-done" : "")}
         onPointerDown={(e) => e.stopPropagation()}
-        onClick={(e) => { e.stopPropagation(); setActionsVisible(false); onToggle(); }}
+        onClick={(e) => { e.stopPropagation(); onToggle(); }}
         aria-label={task.done ? t.markIncomplete : t.markComplete}
       >
         <svg viewBox="0 0 16 16" width={11} height={11} aria-hidden="true">
@@ -148,29 +129,26 @@ export default function TaskItem({
         <span className="tm-task-text">{task.text}</span>
       )}
 
-      <button
-        className="tm-task-color"
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={(e) => { e.stopPropagation(); setMenu(true); setActionsVisible(false); }}
-        aria-label={t.changeColor}
-      >
-        <ColorIcon color={task.color ?? null} />
-      </button>
+      {!editing && (
+        <button
+          className="tm-task-menu-btn"
+          onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); setMenuOpen(true); }}
+          aria-label={t.taskOptions}
+        >
+          <DotsIcon />
+        </button>
+      )}
 
-      <button
-        className="tm-task-del"
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={(e) => { e.stopPropagation(); onDelete(); }}
-        aria-label={t.deleteTask}
-      >
-        <TrashIcon />
-      </button>
-
-      {menu && (
-        <ColorPicker
-          current={task.color ?? null}
-          onSelect={onColorChange}
-          onClose={() => setMenu(false)}
+      {menuOpen && (
+        <TaskMenu
+          task={task}
+          onColorChange={onColorChange}
+          onDelete={onDelete}
+          onEdit={() => setEditing(true)}
+          onClose={() => setMenuOpen(false)}
         />
       )}
     </div>

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from models import TaskCreate, TaskUpdate, ReorderRequest
+from models import TaskCreate, TaskUpdate, ReorderRequest, ReminderUpdate
 from auth import get_current_user
 from database import get_db
 
@@ -64,6 +64,24 @@ async def update_task(
     result = (
         db.table("tasks")
         .update(patch)
+        .eq("id", task_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return {"data": result.data[0] if result.data else None}
+
+
+@router.put("/{task_id}/reminder")
+async def set_reminder(
+    task_id: str, body: ReminderUpdate, user_id: str = Depends(get_current_user)
+):
+    db = get_db()
+    # Setting (or clearing) a reminder always resets reminder_sent_at so a fresh
+    # reminder fires, even if this task had already fired a previous one.
+    remind_at = body.remind_at.isoformat() if body.remind_at else None
+    result = (
+        db.table("tasks")
+        .update({"remind_at": remind_at, "reminder_sent_at": None})
         .eq("id", task_id)
         .eq("user_id", user_id)
         .execute()
