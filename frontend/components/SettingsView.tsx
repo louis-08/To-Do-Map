@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@clerk/nextjs";
+import { useClerk, useUser, useAuth } from "@clerk/nextjs";
 import { api } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import McpServerInfo from "./McpServerInfo";
@@ -17,14 +17,34 @@ function IconBack() {
 export default function SettingsView({
   onBack,
   onExport,
+  stats,
 }: {
   onBack: () => void;
   onExport: () => void;
+  stats?: { done: number; open: number; objectives: number };
 }) {
   const { getToken } = useAuth();
   const { t, lang, setLang } = useI18n();
   const a = api(getToken as () => Promise<string | null>);
   const [autoRollover, setAutoRollover] = useState(false);
+  const { signOut } = useClerk();
+  const { user } = useUser();
+  const name = user?.fullName ?? user?.firstName ?? t.youFallback;
+  const email = user?.emailAddresses[0]?.emailAddress ?? "";
+  const initials = name.trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    try {
+      await a.account.delete();
+      await user?.delete();
+    } catch {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  }
 
   useEffect(() => {
     a.settings.get().then((s) => setAutoRollover(s.data.auto_rollover)).catch(() => {});
@@ -45,6 +65,51 @@ export default function SettingsView({
         <span className="tab-spacer" />
       </div>
       <div className="tab-body">
+
+        <section className="tab-card profile-hero">
+          <div className="avatar">{initials}</div>
+          <div>
+            <div className="profile-name">{name}</div>
+            <div className="profile-email">{email}</div>
+          </div>
+        </section>
+
+        {stats && (
+          <div className="stat-row">
+            <div className="stat"><div className="stat-num">{stats.done}</div><div className="stat-lbl">{t.tasksDone}</div></div>
+            <div className="stat"><div className="stat-num">{stats.open}</div><div className="stat-lbl">{t.openTasks}</div></div>
+            <div className="stat"><div className="stat-num">{stats.objectives}</div><div className="stat-lbl">{t.objectivesSet}</div></div>
+          </div>
+        )}
+
+        <section className="tab-card">
+          <div className="tab-card-title">{t.account}</div>
+          <div className="set-row" style={{ borderTop: "none", paddingTop: 0 }}>
+            <div className="set-row-text">
+              <div className="set-row-label">{t.signOut}</div>
+              <div className="set-row-sub">{t.signOutSub}</div>
+            </div>
+            <button className="btn-ghost" onClick={() => signOut({ redirectUrl: "/sign-in" })}>
+              {t.signOut}
+            </button>
+          </div>
+          <div className="set-row">
+            <div className="set-row-text">
+              <div className="set-row-label">{t.deleteAccount}</div>
+              <div className="set-row-sub">{t.deleteAccountSub}</div>
+            </div>
+            {!confirmDelete ? (
+              <button className="btn-ghost danger" onClick={() => setConfirmDelete(true)}>{t.delete}</button>
+            ) : (
+              <div className="confirm">
+                <button className="btn-ghost" onClick={() => setConfirmDelete(false)} disabled={deleting}>{t.cancel}</button>
+                <button className="btn-danger" onClick={handleDeleteAccount} disabled={deleting}>
+                  {deleting ? t.deleting : t.confirmDelete}
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
 
         <section className="tab-card">
           <div className="tab-card-title">{t.language}</div>

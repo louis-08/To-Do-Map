@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useI18n } from "@/lib/i18n";
 
-type View = "board" | "year" | "profile" | "settings";
+type View = "board" | "year" | "settings" | "profile";
 
 function IconUser() {
   return (
@@ -62,17 +62,9 @@ export default function TopBar({
         </button>
       </div>
 
-<div className="tm-navbtns">
-        <button className="tm-today-btn" onClick={onTodayClick}>{t.today}</button>
+      <div className="tm-navbtns">
         <button
-          className={"tm-iconbtn" + (view === "profile" ? " active" : "")}
-          onClick={() => onViewChange(view === "profile" ? "board" : "profile")}
-          title={t.profileTitle}
-        >
-          <IconUser />
-        </button>
-        <button
-          className={"tm-iconbtn" + (view === "settings" ? " active" : "")}
+          className={"tm-iconbtn tm-iconbtn-square" + (view === "settings" ? " active" : "")}
           onClick={() => onViewChange(view === "settings" ? "board" : "settings")}
           title={t.settingsTitle}
         >

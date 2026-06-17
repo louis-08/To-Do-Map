@@ -16,7 +16,6 @@ import { arrayMove } from "@dnd-kit/sortable";
 import type { Task } from "@/lib/api";
 import WeekRow from "./WeekRow";
 import TopBar from "./TopBar";
-import ProfileView from "./ProfileView";
 import SettingsView from "./SettingsView";
 import YearView from "./YearView";
 import { useI18n } from "@/lib/i18n";
@@ -64,7 +63,7 @@ function buildWeeks(startYear = 2026, numYears = 6) {
 const ALL_WEEKS = buildWeeks(2026, 6);
 const CURRENT_WEEK_IDX = Math.max(0, ALL_WEEKS.findIndex((w) => w.isCurrent));
 
-type ViewType = "board" | "year" | "profile" | "settings";
+type ViewType = "board" | "year" | "settings";
 
 export default function MonthView({
   tasks: initialTasks,
@@ -369,15 +368,9 @@ export default function MonthView({
         </div>
       )}
 
-      {view === "profile" && (
-        <div style={{ flex: "1 1 auto", overflow: "auto" }}>
-          <ProfileView stats={stats} onBack={() => setView("board")} />
-        </div>
-      )}
-
       {view === "settings" && (
         <div style={{ flex: "1 1 auto", overflow: "auto" }}>
-          <SettingsView onBack={() => setView("board")} onExport={onExport} />
+          <SettingsView stats={stats} onBack={() => setView("board")} onExport={onExport} />
         </div>
       )}
     </div>

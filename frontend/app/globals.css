@@ -77,6 +77,13 @@ body {
 }
 .tm-iconbtn:hover { background: #f3f3f5; color: var(--ink); }
 .tm-iconbtn.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+.tm-iconbtn-square {
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--ink-soft);
+  display: grid; place-items: center;
+}
 
 /* ---------- scroll area ---------- */
 .tm-scroll { flex: 1 1 auto; overflow: auto; background: var(--canvas); }
@@ -413,6 +420,15 @@ body {
 .tm-tabs {
   display: flex; gap: 2px; padding: 3px;
   background: #f1f1f3; border: 1px solid var(--line-strong); border-radius: 999px;
+  /* center the tabs in the topbar */
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  z-index: 12;
+}
+
+/* Mobile: only show logo icon, hide brand text and year */
+@media (max-width: 640px) {
+  .tm-brand-name, .tm-year-pill { display: none; }
+  .tm-topbar { padding: 10px 12px; }
 }
 .tm-tab {
   font-family: inherit; font-size: 13px; font-weight: 600; letter-spacing: -0.005em;
