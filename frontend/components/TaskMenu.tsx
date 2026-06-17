@@ -30,7 +30,13 @@ function ColorIcon({ color }: { color: string | null }) {
 
 function BellIcon({ active }: { active: boolean }) {
   return (
-    <svg viewBox="0 0 16 16" width={20} height={20} aria-hidden="true">
+    <svg
+      viewBox="0 0 16 16"
+      width={20}
+      height={20}
+      aria-hidden="true"
+      style={active ? { color: "var(--accent)" } : undefined}
+    >
       <path d="M8 2.2c-1.9 0-3.4 1.5-3.4 3.4 0 2.6-.8 3.7-1.3 4.2-.2.2-.3.5-.1.8.1.2.4.4.7.4h8.2c.3 0 .6-.2.7-.4.2-.3.1-.6-.1-.8-.5-.5-1.3-1.6-1.3-4.2 0-1.9-1.5-3.4-3.4-3.4z"
             fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
       <path d="M6.6 13.2c.2.6.7 1 1.4 1s1.2-.4 1.4-1" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />

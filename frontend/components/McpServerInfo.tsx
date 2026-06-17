@@ -12,6 +12,7 @@ export default function McpServerInfo() {
   const [status, setStatus] = useState<Status>("checking");
   const [mcpUrl, setMcpUrl] = useState(`${BASE}/mcp`);
   const [copied, setCopied] = useState(false);
+  const [openClient, setOpenClient] = useState<"claude" | "chatgpt" | "gemini" | null>("claude");
 
   useEffect(() => {
     let active = true;
@@ -57,6 +58,27 @@ export default function McpServerInfo() {
       : status === "offline"
         ? t.serverOffline
         : t.serverChecking;
+  const clients: Array<{
+    key: "claude" | "chatgpt" | "gemini";
+    title: string;
+    steps: string[];
+  }> = [
+    {
+      key: "claude",
+      title: t.mcpClaudeTitle,
+      steps: [t.mcpClaudeStep1, t.mcpClaudeStep2, t.mcpClaudeStep3, t.mcpClaudeStep4],
+    },
+    {
+      key: "chatgpt",
+      title: t.mcpChatgptTitle,
+      steps: [t.mcpChatgptStep1, t.mcpChatgptStep2, t.mcpChatgptStep3],
+    },
+    {
+      key: "gemini",
+      title: t.mcpGeminiTitle,
+      steps: [t.mcpGeminiStep1, t.mcpGeminiStep2, t.mcpGeminiStep3],
+    },
+  ];
 
   return (
     <div className="flex flex-col gap-3">
@@ -94,16 +116,44 @@ export default function McpServerInfo() {
         </button>
       </div>
 
-      <ol className="flex flex-col gap-1.5 text-xs" style={{ color: "var(--ink-soft)" }}>
-        <li>
-          1. {t.mcpStep1Pre}<strong>{t.mcpStep1Strong}</strong>{t.mcpStep1Post}
-        </li>
-        <li>2. {t.mcpStep2}</li>
-        <li>
-          3. {t.mcpStep3Pre}<strong>{t.mcpStep3Strong}</strong>{t.mcpStep3Post}
-        </li>
-        <li>4. {t.mcpStep4}</li>
-      </ol>
+      <div className="flex flex-col gap-2">
+        {clients.map((client) => {
+          const isOpen = openClient === client.key;
+
+          return (
+            <div
+              key={client.key}
+              className="rounded overflow-hidden"
+              style={{ border: "1px solid var(--line-strong)", background: "#fff" }}
+            >
+              <button
+                type="button"
+                onClick={() => setOpenClient(isOpen ? null : client.key)}
+                aria-expanded={isOpen}
+                className="w-full flex items-center justify-between gap-3 px-3 py-2 text-left"
+                style={{ fontSize: 13, fontWeight: 600 }}
+              >
+                <span>{client.title}</span>
+                <span aria-hidden style={{ color: "var(--muted)", fontSize: 18, lineHeight: 1 }}>
+                  {isOpen ? "−" : "+"}
+                </span>
+              </button>
+              {isOpen && (
+                <ol
+                  className="flex flex-col gap-1.5 px-3 pb-3 text-xs"
+                  style={{ color: "var(--ink-soft)" }}
+                >
+                  {client.steps.map((step, index) => (
+                    <li key={step}>
+                      {index + 1}. {step}
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

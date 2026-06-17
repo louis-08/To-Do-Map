@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useQueryClient } from "@tanstack/react-query";
 import { api, type Task } from "@/lib/api";
@@ -9,9 +9,96 @@ import { useI18n } from "@/lib/i18n";
 
 type View = "picker" | "ios" | "denied" | "unsupported" | "busy";
 
-function toLocalInputValue(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+function pad(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function parseISODateParts(isoDate: string) {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return { year, month, day };
+}
+
+function buildReminderDate(isoDate: string, hour: number, minute: number): Date {
+  const { year, month, day } = parseISODateParts(isoDate);
+  return new Date(year, month - 1, day, hour, minute, 0, 0);
+}
+
+function formatReminderTime(value: string | null): string {
+  if (!value) return "";
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(value));
+}
+
+function isValidHour(value: string): boolean {
+  return /^\d{1,2}$/.test(value) && Number(value) >= 0 && Number(value) <= 23;
+}
+
+function isValidMinute(value: string): boolean {
+  return /^\d{1,2}$/.test(value) && Number(value) >= 0 && Number(value) <= 59;
+}
+
+function TimeWheel({
+  values,
+  value,
+  onChange,
+}: {
+  values: string[];
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const itemHeight = 36;
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const idx = values.indexOf(value);
+    if (idx === -1) return;
+    el.scrollTo({ top: idx * itemHeight, behavior: "smooth" });
+  }, [value, values]);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let timeout = 0;
+
+    const sync = () => {
+      const idx = Math.round(el.scrollTop / itemHeight);
+      const next = values[Math.max(0, Math.min(values.length - 1, idx))];
+      if (next !== value) onChange(next);
+    };
+
+    const onScroll = () => {
+      window.clearTimeout(timeout);
+      timeout = window.setTimeout(sync, 80);
+    };
+
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      window.clearTimeout(timeout);
+    };
+  }, [onChange, value, values]);
+
+  return (
+    <div className="tm-reminder-wheel-wrap">
+      <div ref={ref} className="tm-reminder-wheel" aria-label="Time selector">
+        {values.map((option) => (
+          <button
+            key={option}
+            type="button"
+            className={"tm-reminder-wheel-item" + (option === value ? " is-active" : "")}
+            onClick={() => onChange(option)}
+          >
+            {option}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function ReminderPicker({
@@ -28,10 +115,21 @@ export default function ReminderPicker({
   const qc = useQueryClient();
   const platform = useMemo(() => getPushPlatform(), []);
   const [view, setView] = useState<View>(platform.needsInstall ? "ios" : "picker");
-  const [custom, setCustom] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
+  const reminderDate = task.remind_at ? new Date(task.remind_at) : null;
+  const [hour, setHour] = useState(reminderDate ? pad(reminderDate.getHours()) : "09");
+  const [minute, setMinute] = useState(reminderDate ? pad(reminderDate.getMinutes()) : "00");
   // When embedded in the task options modal, the parent owns close-on-outside
   // and Escape handling, so the picker skips its own popover listeners.
   const menuClass = "tm-reminder-menu" + (embedded ? " tm-reminder-embedded" : "");
+  const selectedDate = useMemo(() => {
+    if (!isValidHour(hour) || !isValidMinute(minute)) return null;
+    return buildReminderDate(task.date, Number(hour), Number(minute));
+  }, [hour, minute, task.date]);
+  const isPastSelection = !!selectedDate && selectedDate.getTime() <= Date.now();
+  const canSubmit = !!selectedDate && !isPastSelection && view !== "busy";
+  const hourOptions = useMemo(() => Array.from({ length: 24 }, (_, i) => pad(i)), []);
+  const minuteOptions = useMemo(() => Array.from({ length: 60 }, (_, i) => pad(i)), []);
 
   useEffect(() => {
     if (embedded) return;
@@ -46,6 +144,15 @@ export default function ReminderPicker({
       document.removeEventListener("keydown", esc);
     };
   }, [onClose, embedded]);
+
+  useEffect(() => {
+    const syncMobile = () => {
+      setIsMobile(window.matchMedia?.("(pointer: coarse)").matches ?? false);
+    };
+    syncMobile();
+    window.addEventListener("resize", syncMobile);
+    return () => window.removeEventListener("resize", syncMobile);
+  }, []);
 
   async function apply(when: Date | null) {
     const getTok = getToken as () => Promise<string | null>;
@@ -64,19 +171,6 @@ export default function ReminderPicker({
     await api(getTok).tasks.setReminder(task.id, when.toISOString());
     qc.invalidateQueries({ queryKey: ["tasks"] });
     onClose();
-  }
-
-  function preset(kind: "hour" | "evening" | "tomorrow"): Date {
-    const d = new Date();
-    if (kind === "hour") { d.setHours(d.getHours() + 1); return d; }
-    if (kind === "evening") {
-      d.setHours(18, 0, 0, 0);
-      if (d.getTime() < Date.now()) d.setDate(d.getDate() + 1);
-      return d;
-    }
-    d.setDate(d.getDate() + 1);
-    d.setHours(9, 0, 0, 0);
-    return d;
   }
 
   if (view === "ios") {
@@ -109,39 +203,57 @@ export default function ReminderPicker({
     <div className={menuClass} onMouseDown={(e) => e.stopPropagation()}>
       {task.remind_at && (
         <div className="tm-reminder-current">
-          {t.reminderSetFor} {new Date(task.remind_at).toLocaleString()}
+          {t.reminderSetFor} {formatReminderTime(task.remind_at)}
         </div>
       )}
 
-      <button className="tm-reminder-opt" disabled={view === "busy"} onClick={() => apply(preset("hour"))}>
-        {t.reminderIn1Hour}
-      </button>
-      <button className="tm-reminder-opt" disabled={view === "busy"} onClick={() => apply(preset("evening"))}>
-        {t.reminderThisEvening}
-      </button>
-      <button className="tm-reminder-opt" disabled={view === "busy"} onClick={() => apply(preset("tomorrow"))}>
-        {t.reminderTomorrow9}
-      </button>
+      {isMobile ? (
+        <div className="tm-reminder-wheel-picker">
+          <TimeWheel values={hourOptions} value={hour} onChange={setHour} />
+          <div className="tm-reminder-colon">:</div>
+          <TimeWheel values={minuteOptions} value={minute} onChange={setMinute} />
+        </div>
+      ) : (
+        <div className="tm-reminder-custom">
+          <input
+            type="text"
+            inputMode="numeric"
+            className="tm-reminder-time-input"
+            value={hour}
+            onChange={(e) => {
+              const next = e.target.value.replace(/\D/g, "").slice(0, 2);
+              setHour(next);
+            }}
+            placeholder="HH"
+            aria-label="Hour"
+          />
+          <span className="tm-reminder-colon">:</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            className="tm-reminder-time-input"
+            value={minute}
+            onChange={(e) => {
+              const next = e.target.value.replace(/\D/g, "").slice(0, 2);
+              setMinute(next);
+            }}
+            placeholder="MM"
+            aria-label="Minute"
+          />
+        </div>
+      )}
 
-      <div className="tm-reminder-custom">
-        <input
-          type="datetime-local"
-          className="tm-reminder-input"
-          min={toLocalInputValue(new Date())}
-          value={custom}
-          onChange={(e) => setCustom(e.target.value)}
-        />
-        <button
-          className="tm-reminder-btn"
-          disabled={!custom || view === "busy"}
-          onClick={() => apply(new Date(custom))}
-        >
-          {view === "busy" ? t.reminderBusy : t.reminderSet}
-        </button>
-      </div>
+      <button
+        type="button"
+        className="tm-reminder-btn"
+        disabled={!canSubmit}
+        onClick={() => selectedDate && apply(selectedDate)}
+      >
+        {view === "busy" ? t.reminderBusy : t.reminderSet}
+      </button>
 
       {task.remind_at && (
-        <button className="tm-reminder-remove" disabled={view === "busy"} onClick={() => apply(null)}>
+        <button type="button" className="tm-reminder-remove" disabled={view === "busy"} onClick={() => apply(null)}>
           {t.reminderRemove}
         </button>
       )}
