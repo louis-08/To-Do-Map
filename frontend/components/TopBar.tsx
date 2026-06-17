@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useI18n } from "@/lib/i18n";
 
-type View = "board" | "year" | "settings" | "profile";
+type View = "board" | "year" | "settings";
 
 function IconUser() {
   return (

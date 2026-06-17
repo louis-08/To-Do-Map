@@ -5,5 +5,5 @@ uvicorn main:app --reload
 
 Hsoting:
 frontend: vercel
-backend server: vercel
-DB: Superbase
+backend server: railway
+DB: Supabase
