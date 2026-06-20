@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, type RefObject } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import type { Task } from "@/lib/api";
@@ -27,6 +28,7 @@ export default function DayColumn({
   onDelete,
   onColorChange,
   onEdit,
+  todayRef,
 }: {
   date: Date;
   dayIndex: number;
@@ -37,10 +39,15 @@ export default function DayColumn({
   onDelete: (id: string) => void;
   onColorChange: (id: string, color: string | null) => void;
   onEdit: (id: string, text: string) => void;
+  todayRef?: RefObject<HTMLDivElement | null>;
 }) {
   const { t } = useI18n();
   const isoDate = toISO(date);
   const { setNodeRef, isOver } = useDroppable({ id: isoDate });
+  const setCellRef = useCallback((node: HTMLDivElement | null) => {
+    setNodeRef(node);
+    if (todayRef) todayRef.current = node;
+  }, [setNodeRef, todayRef]);
 
   const cls = [
     "tm-cell",
@@ -50,7 +57,7 @@ export default function DayColumn({
   ].filter(Boolean).join(" ");
 
   return (
-    <div ref={setNodeRef} className={cls}>
+    <div ref={setCellRef} className={cls}>
       <div className="tm-cell-head">
         <span className="tm-wd">{t.daysShort[dayIndex]}</span>
         <span className="tm-date">{dmKey(date)}</span>

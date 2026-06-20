@@ -24,6 +24,7 @@ const WeekRow = memo(function WeekRow({
   onColorChange,
   onEdit,
   currentRef,
+  todayRef,
 }: {
   week: { num: number; year: number; monday: Date; sunday: Date; days: Date[]; isCurrent: boolean };
   tasks: Task[];
@@ -34,6 +35,7 @@ const WeekRow = memo(function WeekRow({
   onColorChange: (id: string, color: string | null) => void;
   onEdit: (id: string, text: string) => void;
   currentRef?: React.RefObject<HTMLDivElement | null>;
+  todayRef?: React.RefObject<HTMLDivElement | null>;
 }) {
   const today = isoToday();
 
@@ -55,20 +57,24 @@ const WeekRow = memo(function WeekRow({
       data-week-year={week.year}
       className={"tm-row" + (week.isCurrent ? " is-current-week" : "")}
     >
-      {week.days.map((day, i) => (
-        <DayColumn
-          key={toISO(day)}
-          date={day}
-          dayIndex={i}
-          state={dayState(day)}
-          tasks={tasksForDay(day)}
-          onAdd={onAddTask}
-          onToggle={onToggle}
-          onDelete={onDelete}
-          onColorChange={onColorChange}
-          onEdit={onEdit}
-        />
-      ))}
+      {week.days.map((day, i) => {
+        const state = dayState(day);
+        return (
+          <DayColumn
+            key={toISO(day)}
+            date={day}
+            dayIndex={i}
+            state={state}
+            tasks={tasksForDay(day)}
+            onAdd={onAddTask}
+            onToggle={onToggle}
+            onDelete={onDelete}
+            onColorChange={onColorChange}
+            onEdit={onEdit}
+            todayRef={state === "today" ? todayRef : undefined}
+          />
+        );
+      })}
       <WeeklyObjective
         weekNum={week.num}
         monday={week.monday}

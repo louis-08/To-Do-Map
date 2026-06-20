@@ -121,9 +121,11 @@ export default function MonthView({
 
   const scrollerRef = useRef<HTMLDivElement>(null);
   const currentRef = useRef<HTMLDivElement>(null);
+  const todayCellRef = useRef<HTMLDivElement>(null);
   const scrollRaf = useRef(0);
   const prevScrollHeightRef = useRef(0);
   const anchorScrollRef = useRef(false);
+  const [showBackToToday, setShowBackToToday] = useState(false);
 
   const loadEarlier = useCallback(() => {
     if (startIdx === 0) return;
@@ -188,8 +190,15 @@ export default function MonthView({
     const head = sc.querySelector(".tm-colhead") as HTMLElement | null;
     const off = (head ? head.offsetHeight : 0) + 8;
     const top = Math.max(0, sc.scrollTop + el.getBoundingClientRect().top - sc.getBoundingClientRect().top - off);
-    if (smooth) sc.scrollTo({ top, behavior: "smooth" });
-    else sc.scrollTop = top;
+    const opts: ScrollToOptions = { top };
+    const todayCell = todayCellRef.current;
+    if (todayCell) {
+      const cellRect = todayCell.getBoundingClientRect();
+      const scRect = sc.getBoundingClientRect();
+      opts.left = Math.max(0, sc.scrollLeft + cellRect.left - scRect.left - (sc.clientWidth - todayCell.offsetWidth) / 2);
+    }
+    if (smooth) sc.scrollTo({ ...opts, behavior: "smooth" });
+    else sc.scrollTo(opts);
   }, []);
 
   const updateVisibleYear = useCallback(() => {
@@ -219,6 +228,27 @@ export default function MonthView({
     const t2 = setTimeout(() => { scrollToToday(false); updateVisibleYear(); }, 400);
     return () => { cancelAnimationFrame(r); clearTimeout(t1); clearTimeout(t2); };
   }, []);
+
+  useEffect(() => {
+    if (view !== "board") {
+      setShowBackToToday(false);
+      return;
+    }
+
+    const sc = scrollerRef.current;
+    const todayCell = todayCellRef.current;
+    if (!sc || !todayCell) {
+      setShowBackToToday(false);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowBackToToday(!entry.isIntersecting),
+      { root: sc, threshold: 0.2 },
+    );
+    observer.observe(todayCell);
+    return () => observer.disconnect();
+  }, [view, startIdx, endIdx, nowMondayTime]);
 
   const stats = {
     done: tasks.filter((t) => t.done).length,
@@ -328,6 +358,7 @@ export default function MonthView({
                   onColorChange={onColorChange}
                   onEdit={onEdit}
                   currentRef={week.isCurrent ? currentRef : undefined}
+                  todayRef={week.isCurrent ? todayCellRef : undefined}
                 />
               </div>
             ))}
@@ -372,6 +403,12 @@ export default function MonthView({
         <div style={{ flex: "1 1 auto", overflow: "auto" }}>
           <SettingsView stats={stats} onBack={() => setView("board")} onExport={onExport} />
         </div>
+      )}
+
+      {view === "board" && showBackToToday && (
+        <button className="tm-back-today-btn" type="button" onClick={() => scrollToToday(true)}>
+          Back to today
+        </button>
       )}
     </div>
   );
