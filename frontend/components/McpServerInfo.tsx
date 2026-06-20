@@ -10,7 +10,7 @@ type Status = "checking" | "online" | "offline";
 export default function McpServerInfo() {
   const { t } = useI18n();
   const [status, setStatus] = useState<Status>("checking");
-  const [mcpUrl, setMcpUrl] = useState(`${BASE}/mcp/`);
+  const [mcpUrl, setMcpUrl] = useState(`${BASE}/mcp`);
   const [copied, setCopied] = useState(false);
   const [openClient, setOpenClient] = useState<"claude" | "chatgpt" | "gemini" | null>("claude");
 

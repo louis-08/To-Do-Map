@@ -72,7 +72,7 @@ mcp.settings.streamable_http_path = "/"
 # root in the 401's WWW-Authenticate header, but only serves it under /mcp
 # (because it's mounted there), so main.py also serves this dict at the root.
 PROTECTED_RESOURCE_METADATA = {
-    "resource": _RESOURCE_SERVER_URL.rstrip("/") + "/mcp/",
+    "resource": _RESOURCE_SERVER_URL.rstrip("/") + "/mcp",
     "authorization_servers": [_ISSUER + "/"],
     # Advertise only scopes Clerk allows for dynamically-registered clients.
     # Must NOT include "openid" — Clerk forbids it for DCR clients, and an
