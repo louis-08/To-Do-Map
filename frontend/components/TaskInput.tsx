@@ -8,19 +8,26 @@ export default function TaskInput({ onAdd }: { onAdd: (text: string) => void }) 
   const [open, setOpen] = useState(false);
   const [val, setVal] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const closedRef = useRef(false);
 
   useEffect(() => {
-    if (open && inputRef.current) inputRef.current.focus();
+    if (open) {
+      closedRef.current = false;
+      inputRef.current?.focus();
+    }
   }, [open]);
 
   function commit() {
+    if (closedRef.current) return;
+    closedRef.current = true;
     const t = val.trim();
     if (t) onAdd(t);
     setVal("");
     setOpen(false);
   }
 
-  function handleBlur() {
+  function cancel() {
+    closedRef.current = true;
     setVal("");
     setOpen(false);
   }
@@ -44,9 +51,9 @@ export default function TaskInput({ onAdd }: { onAdd: (text: string) => void }) 
         onChange={(e) => setVal(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter") { commit(); }
-          else if (e.key === "Escape") { setVal(""); setOpen(false); }
+          else if (e.key === "Escape") { cancel(); }
         }}
-        onBlur={handleBlur}
+        onBlur={commit}
       />
       <button
         type="button"
