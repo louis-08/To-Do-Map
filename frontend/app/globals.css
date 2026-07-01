@@ -496,6 +496,7 @@ body {
 
 /* Mobile: only show logo icon, hide brand text and year */
 @media (max-width: 640px) {
+  :root { --board-min: 1344px; }
   .tm-brand-name, .tm-year-pill { display: none; }
   .tm-topbar { padding: 10px 12px; }
 }
@@ -548,11 +549,11 @@ body {
   .tm-year-body {
     flex-direction: column;
     width: max-content;
-    min-width: 720px;
+    min-width: 864px;
   }
-  .tm-year-main { min-width: 720px; }
+  .tm-year-main { min-width: 864px; }
   .tm-year-side {
     flex-basis: auto;
-    min-width: 720px;
+    min-width: 864px;
   }
 }

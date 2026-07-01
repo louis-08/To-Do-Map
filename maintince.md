@@ -74,8 +74,8 @@ Common commands:
 
 ```bash
 cd backend
-.\venv\Scripts\Activate.ps1
-uvicorn main:app --reload
+.\.venv\Scripts\Activate.ps1
+.\.venv\Scripts\python.exe -m uvicorn main:app --reload
 python -m pytest
 ```
 

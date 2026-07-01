@@ -1,7 +1,7 @@
 frontend: npm run dev
 backend cd c:\Coding\To-Do-Map\backend
-.\venv\Scripts\Activate.ps1
-uvicorn main:app --reload
+.\.venv\Scripts\Activate.ps1
+.\.venv\Scripts\python.exe -m uvicorn main:app --reload
 
 Hsoting:
 frontend: vercel
