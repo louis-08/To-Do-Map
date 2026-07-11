@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Task } from "@/lib/api";
 import { TASK_COLORS } from "./ColorPicker";
-import ReminderPicker from "./ReminderPicker";
 import { useI18n } from "@/lib/i18n";
 
 function PencilIcon() {
@@ -24,22 +23,6 @@ function ColorIcon({ color }: { color: string | null }) {
     <svg viewBox="0 0 16 16" width={20} height={20} aria-hidden="true">
       <circle cx="8" cy="8" r="5.2" fill={entry ? bg : "none"} stroke={dot} strokeWidth="1.5" />
       {entry && <circle cx="8" cy="8" r="2.2" fill={dot} />}
-    </svg>
-  );
-}
-
-function BellIcon({ active }: { active: boolean }) {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      width={20}
-      height={20}
-      aria-hidden="true"
-      style={active ? { color: "var(--accent)" } : undefined}
-    >
-      <path d="M8 2.2c-1.9 0-3.4 1.5-3.4 3.4 0 2.6-.8 3.7-1.3 4.2-.2.2-.3.5-.1.8.1.2.4.4.7.4h8.2c.3 0 .6-.2.7-.4.2-.3.1-.6-.1-.8-.5-.5-1.3-1.6-1.3-4.2 0-1.9-1.5-3.4-3.4-3.4z"
-            fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-      <path d="M6.6 13.2c.2.6.7 1 1.4 1s1.2-.4 1.4-1" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
     </svg>
   );
 }
@@ -70,7 +53,7 @@ function CloseIcon() {
   );
 }
 
-type View = "home" | "color" | "reminder";
+type View = "home" | "color";
 
 export default function TaskMenu({
   task,
@@ -99,7 +82,7 @@ export default function TaskMenu({
 
   if (!mounted) return null;
 
-  const title = view === "color" ? t.color : view === "reminder" ? t.reminder : task.text;
+  const title = view === "color" ? t.color : task.text;
 
   return createPortal(
     <div className="tm-modal-overlay" onClick={onClose}>
@@ -126,9 +109,6 @@ export default function TaskMenu({
             <button className="tm-modal-opt" onClick={() => setView("color")} aria-label={t.changeColor}>
               <ColorIcon color={task.color ?? null} /><span>{t.color}</span>
             </button>
-            <button className="tm-modal-opt" onClick={() => setView("reminder")} aria-label={t.setReminder}>
-              <BellIcon active={!!task.remind_at} /><span>{t.reminder}</span>
-            </button>
             <button className="tm-modal-opt is-danger" onClick={() => { onDelete(); onClose(); }} aria-label={t.deleteTask}>
               <TrashIcon /><span>{t.delete}</span>
             </button>
@@ -151,12 +131,6 @@ export default function TaskMenu({
                 );
               })}
             </div>
-          </div>
-        )}
-
-        {view === "reminder" && (
-          <div className="tm-modal-body">
-            <ReminderPicker task={task} embedded onClose={onClose} />
           </div>
         )}
       </div>

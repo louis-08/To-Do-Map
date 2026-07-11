@@ -5,5 +5,5 @@ backend cd c:\Coding\To-Do-Map\backend
 
 Hsoting:
 frontend: vercel
-backend server: railway
+backend server: vercel (serverless)
 DB: Supabase

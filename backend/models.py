@@ -40,14 +40,3 @@ class ObjectiveUpsert(BaseModel):
 
 class SettingsUpdate(BaseModel):
     auto_rollover: bool
-
-
-class ReminderUpdate(BaseModel):
-    # Absolute instant the reminder should fire (UTC), or None to clear it.
-    remind_at: Optional[datetime.datetime] = None
-
-
-class PushSubscriptionCreate(BaseModel):
-    endpoint: str
-    p256dh: str
-    auth: str

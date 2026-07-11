@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useClerk, useUser, useAuth } from "@clerk/nextjs";
 import { api } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
-import McpServerInfo from "./McpServerInfo";
 
 function IconBack() {
   return (
@@ -148,11 +147,6 @@ export default function SettingsView({
             </div>
             <button className="btn-ghost" onClick={onExport}>{t.exportBtn}</button>
           </div>
-        </section>
-
-        <section className="tab-card">
-          <div className="tab-card-title">{t.aiIntegration}</div>
-          <McpServerInfo />
         </section>
 
         <section className="tab-card">

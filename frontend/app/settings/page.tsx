@@ -3,7 +3,6 @@
 import { useUser, useAuth } from "@clerk/nextjs";
 import { api } from "@/lib/api";
 import ThemeToggle from "@/components/ThemeToggle";
-import McpServerInfo from "@/components/McpServerInfo";
 import NavBar from "@/components/NavBar";
 import { currentYearMonth } from "@/lib/dates";
 
@@ -48,11 +47,6 @@ export default function SettingsPage() {
         <section>
           <h2 className="text-base font-semibold mb-3">Theme</h2>
           <ThemeToggle />
-        </section>
-
-        <section>
-          <h2 className="text-base font-semibold mb-3">AI Integration (MCP)</h2>
-          <McpServerInfo />
         </section>
 
         <section>

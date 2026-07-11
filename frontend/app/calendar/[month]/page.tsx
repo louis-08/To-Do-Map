@@ -60,8 +60,6 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
         position: (tasksQuery.data?.data ?? []).filter((t) => t.date === date && t.scope === scope && t.is_weekly_objective === isWeekly).length,
         is_weekly_objective: isWeekly,
         scope,
-        remind_at: null,
-        reminder_sent_at: null,
         created_at: new Date().toISOString(),
       };
       patchTasks((prev) => [...prev, optimistic]);

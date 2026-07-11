@@ -1,4 +1,4 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 
 async function req<T>(
   path: string,
@@ -34,8 +34,6 @@ export type Task = {
   position: number;
   is_weekly_objective: boolean;
   scope: TaskScope;
-  remind_at: string | null;
-  reminder_sent_at: string | null;
   created_at: string;
 };
 
@@ -77,14 +75,6 @@ export function api(getToken: () => Promise<string | null>) {
       reorder: (updates: { id: string; date: string; position: number; is_weekly_objective?: boolean; scope?: TaskScope }[]) =>
         req<{ data: string }>("/tasks/reorder", { method: "PATCH", body: JSON.stringify({ updates }) }, getToken),
 
-      // remindAt: ISO instant to fire the reminder, or null to clear it.
-      setReminder: (id: string, remindAt: string | null) =>
-        req<{ data: Task }>(`/tasks/${id}/reminder`, { method: "PUT", body: JSON.stringify({ remind_at: remindAt }) }, getToken),
-    },
-
-    push: {
-      subscribe: (sub: { endpoint: string; p256dh: string; auth: string }) =>
-        req<{ data: string }>("/push/subscribe", { method: "POST", body: JSON.stringify(sub) }, getToken),
     },
 
     objectives: {
