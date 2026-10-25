@@ -5,9 +5,10 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { Task } from "@/lib/api";
 import { normalizePriority, priorityCardStyle, type Priority } from "@/lib/priority";
-import TaskMenu from "./TaskMenu";
+import TaskMenu, { NoteIcon, type TaskMenuView } from "./TaskMenu";
 import ProjectLabel from "./ProjectLabel";
 import { useI18n } from "@/lib/i18n";
+import { descriptionPreview, hasDescription } from "@/lib/description";
 import { deadlineStatus, formatDeadline, todayISO } from "@/lib/deadline";
 
 function DotsIcon() {
@@ -46,6 +47,7 @@ export default function TaskItem({
 }) {
   const { t, lang } = useI18n();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuView, setMenuView] = useState<TaskMenuView>("home");
   const [editing, setEditing] = useState(false);
   const [editVal, setEditVal] = useState(task.text);
   const editRef = useRef<HTMLInputElement>(null);
@@ -63,6 +65,13 @@ export default function TaskItem({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: task.id });
 
+  const withDescription = hasDescription(task);
+  // The icon is glued to the end of the text so it never wraps onto a line of its
+  // own: to the last word, or only to its last 3 characters for very long words.
+  const lastSpace = task.text.search(/\s\S*$/);
+  const cut = task.text.length - lastSpace - 1 > 10 ? task.text.length - 3 : lastSpace + 1;
+  const textHead = task.text.slice(0, Math.max(cut, 0));
+  const textTail = task.text.slice(textHead.length);
   const priority = normalizePriority(task.priority);
   const priorityStyle = priorityCardStyle(priority);
 
@@ -145,7 +154,28 @@ export default function TaskItem({
         />
       ) : (
         <div className="tm-task-body">
-          <span className="tm-task-text">{task.text}</span>
+          <span className="tm-task-text">
+            {withDescription ? textHead : task.text}
+            {withDescription && (
+              // Icon is glued to the last word so it never wraps onto a line of its own.
+              <span className="tm-nowrap">
+                {textTail}
+                <button
+                  type="button"
+                  className="tm-task-note"
+                  title={descriptionPreview(task.description)}
+                  aria-label={`${t.hasDescription}: ${t.changeDescription}`}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  onTouchEnd={(e) => e.stopPropagation()}
+                  onDoubleClick={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); setMenuView("description"); setMenuOpen(true); }}
+                >
+                  <NoteIcon size={13} />
+                </button>
+              </span>
+            )}
+          </span>
           {(deadlineLabel || task.project_id) && (
             <span className="tm-task-meta">
               {deadlineLabel && (
@@ -169,7 +199,7 @@ export default function TaskItem({
           onPointerDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
           onTouchEnd={(e) => e.stopPropagation()}
-          onClick={(e) => { e.stopPropagation(); setMenuOpen(true); }}
+          onClick={(e) => { e.stopPropagation(); setMenuView("home"); setMenuOpen(true); }}
           aria-label={t.taskOptions}
         >
           <DotsIcon />
@@ -184,6 +214,7 @@ export default function TaskItem({
           onEdit={() => setEditing(true)}
           onDeadlineChange={onDeadlineChange}
           onClose={() => setMenuOpen(false)}
+          initialView={menuView}
         />
       )}
     </div>

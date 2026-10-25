@@ -27,6 +27,7 @@ CREATE TABLE tasks (
   project_id        UUID REFERENCES projects(id) ON DELETE SET NULL,  -- NULL = no project
   deadline          DATE DEFAULT NULL,
   priority          TEXT NOT NULL DEFAULT 'none' CHECK (priority IN ('none', 'medium', 'high')),
+  description       TEXT NOT NULL DEFAULT '' CHECK (char_length(description) <= 10000),
   -- color: legacy, no longer shown in the UI (replaced by priority)
   remind_at         TIMESTAMPTZ DEFAULT NULL,
   reminder_sent_at  TIMESTAMPTZ DEFAULT NULL,
@@ -70,6 +71,7 @@ CREATE TABLE deleted_tasks (
   project_id  UUID REFERENCES projects(id) ON DELETE SET NULL,
   deadline    DATE DEFAULT NULL,
   priority    TEXT NOT NULL DEFAULT 'none' CHECK (priority IN ('none', 'medium', 'high')),
+  description TEXT NOT NULL DEFAULT '' CHECK (char_length(description) <= 10000),
   deleted_at  TIMESTAMPTZ DEFAULT now()
 );
 

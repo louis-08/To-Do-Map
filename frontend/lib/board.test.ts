@@ -27,6 +27,7 @@ function task(p: Partial<Task>): Task {
     is_weekly_objective: false,
     scope: "day",
     priority: "none",
+    description: "",
     project_id: null,
     deadline: null,
     created_at: "2026-10-01T00:00:00Z",

@@ -91,12 +91,13 @@ Important files:
 - `db/schema.sql` contains the base schema.
 - `db/migration_deadline.sql` adds `tasks.deadline` and `deleted_tasks.deadline` (both nullable `DATE`). It is idempotent. Run it in the Supabase SQL editor **before** deploying the backend that uses it; the API inserts a `deadline` key on every task create and delete, so those calls fail while the column is missing.
 - `db/migration_priority.sql` adds `priority` ('none' | 'medium' | 'high') to `tasks` and `deleted_tasks`, converting existing colours once (red → high, amber → medium). The `color` column is kept but no longer used by the UI.
+- `db/migration_description.sql` adds `description` (`TEXT NOT NULL DEFAULT ''`, max 10 000 characters) to `tasks` and `deleted_tasks`. Idempotent. Run it **before** deploying: the API writes `description` on every task create and delete.
 - `db/migration_projects.sql` adds projects. Run it before deploying the projects feature.
 - `db/migration_reminders.sql` is historical and may remain applied. The reminder columns and `push_subscriptions` table are unused by the application and can be cleaned up later with a separate migration.
 
 Main tables:
 
-- `tasks`: user tasks, dates, ordering, completion, priority (none / medium = yellow / high = red), scopes, an optional `deadline` date and an optional `project_id`. The legacy `color` column is unused.
+- `tasks`: user tasks, dates, ordering, completion, priority (none / medium = yellow / high = red), scopes, an optional `deadline` date, an optional `project_id` and a free-text `description` (`''` = none). The legacy `color` column is unused.
 - `weekly_objectives`: one weekly objective per user and week.
 - `deleted_tasks`: soft-deleted tasks shown in trash. The backend keeps only the latest 30 per user.
 - `rollover_log`: tracks whether rollover already ran for a user on a given day.
@@ -110,6 +111,13 @@ Main tables:
 - Week view, project mode (lanes button in the top bar, stored in `localStorage`): every week is split into horizontal lanes, one per active project, plus deleted projects that still have tasks that week, plus "Kein Projekt". Dragging a task into another lane re-assigns its project; `+` in a lane creates the task in that project.
 - Task order (`position`) is kept per day column across all projects, so both modes show the same relative order.
 - API semantics: in `PATCH /api/tasks/{id}` and `PATCH /api/tasks/reorder`, an omitted `project_id` means unchanged and an explicit `null` clears it (same for `deadline` on `PATCH /api/tasks/{id}`). All other task fields keep the legacy rule "null = unchanged".
+
+## Task description
+
+- Every task has an optional free-text `description` (max 10 000 characters, `''` = none; whitespace-only is stored as `''`).
+- Edit it in the task menu ("Beschreibung"): the editor saves when it is left (back, X, click outside, Ctrl/Cmd+Enter or the Save button). Escape discards the edit. "Beschreibung entfernen" clears it.
+- A task with a description shows a small note icon right after its text. Clicking the icon opens the editor; hovering shows the start of the text as tooltip.
+- API: `description` is accepted on `POST /api/tasks` and `PATCH /api/tasks/{id}`. In PATCH, `""` clears it and `null`/omitted means unchanged (legacy rule). It survives trash and restore and appears in the Markdown export as an indented quote below the task.
 
 ## Tests
 
@@ -130,7 +138,7 @@ npm test
 
 ## Deployment Checklist
 
-0. Apply any new file in `db/` (currently `migration_deadline.sql`, `migration_projects.sql` and `migration_priority.sql`) to Supabase first.
+0. Apply any new file in `db/` (currently `migration_deadline.sql`, `migration_projects.sql`, `migration_priority.sql` and `migration_description.sql`) to Supabase first.
 1. In Vercel project settings, select the Services framework.
 2. Build the frontend with `npm.cmd run build` from `frontend`.
 3. Set Clerk variables for the frontend and Supabase, Clerk JWKS, and CORS variables for the backend service.

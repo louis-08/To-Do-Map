@@ -8,6 +8,7 @@ import { projectDotColor } from "./ProjectLabel";
 import { useI18n } from "@/lib/i18n";
 import { useProjects } from "@/lib/projects";
 import { assignableProjects } from "@/lib/board";
+import { DESCRIPTION_MAX, hasDescription, useDescriptionActions } from "@/lib/description";
 
 function PencilIcon() {
   return (
@@ -59,6 +60,16 @@ function CalendarIcon({ active }: { active: boolean }) {
   );
 }
 
+export function NoteIcon({ size = 20, dot = false }: { size?: number; dot?: boolean }) {
+  return (
+    <svg viewBox="0 0 16 16" width={size} height={size} aria-hidden="true">
+      <rect x="2.4" y="2.2" width="11.2" height="11.6" rx="2" fill="none" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M5 6h6M5 8.5h6M5 11h3.4" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      {dot && <circle cx="13" cy="3" r="2.2" fill="var(--accent)" stroke="var(--canvas)" strokeWidth="1" />}
+    </svg>
+  );
+}
+
 function BackIcon() {
   return (
     <svg viewBox="0 0 16 16" width={16} height={16} aria-hidden="true">
@@ -75,7 +86,8 @@ function CloseIcon() {
   );
 }
 
-type View = "home" | "priority" | "deadline" | "project";
+export type TaskMenuView = "home" | "priority" | "deadline" | "project" | "description";
+type View = TaskMenuView;
 
 // The menu is portalled to <body>, but React still bubbles its events up to the
 // task card (dnd-kit drag handlers, double-click-to-edit). Stop them at the overlay
@@ -89,6 +101,7 @@ export default function TaskMenu({
   onEdit,
   onDeadlineChange,
   onClose,
+  initialView = "home",
 }: {
   task: Task;
   onPriorityChange: (priority: Priority) => void;
@@ -96,10 +109,14 @@ export default function TaskMenu({
   onEdit: () => void;
   onDeadlineChange: (deadline: string | null) => void;
   onClose: () => void;
+  /** Lets the description icon on the card open straight into the editor. */
+  initialView?: TaskMenuView;
 }) {
   const { t } = useI18n();
+  const { setDescription } = useDescriptionActions();
   const { projects, byId, assignProject, createProject } = useProjects();
-  const [view, setView] = useState<View>("home");
+  const [view, setView] = useState<View>(initialView);
+  const [descDraft, setDescDraft] = useState(task.description ?? "");
   const [mounted, setMounted] = useState(false);
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
@@ -131,6 +148,19 @@ export default function TaskMenu({
   }
   const [draft, setDraft] = useState(task.deadline ?? "");
 
+  const savedDescription = task.description ?? "";
+  const descDirty = descDraft.trim() !== savedDescription.trim();
+
+  // Leaving the description editor (back, X, click outside) keeps what was typed,
+  // like leaving the inline text edit does. Escape is the explicit "discard".
+  function saveDescription() {
+    if (descDirty) setDescription(task.id, descDraft.trim());
+  }
+  function leave(action: () => void) {
+    if (view === "description") saveDescription();
+    action();
+  }
+
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
@@ -145,31 +175,38 @@ export default function TaskMenu({
     view === "priority" ? t.priority
     : view === "deadline" ? t.deadline
     : view === "project" ? t.project
+    : view === "description" ? t.description
     : task.text;
 
   return createPortal(
     <div
       className="tm-modal-overlay"
-      onClick={(e) => { e.stopPropagation(); onClose(); }}
+      onClick={(e) => { e.stopPropagation(); leave(onClose); }}
       onPointerDown={stop}
       onMouseDown={stop}
       onTouchStart={stop}
       onTouchMove={stop}
       onTouchEnd={stop}
       onDoubleClick={stop}
-      onKeyDown={stop}
+      onKeyDown={(e) => {
+        // stopPropagation below also hides the event from the document-level
+        // listener, so Escape typed inside the modal (textarea, date input)
+        // has to be handled here.
+        if (e.key === "Escape") onClose();
+        e.stopPropagation();
+      }}
     >
       <div className="tm-modal" onClick={(e) => e.stopPropagation()}>
         <div className="tm-modal-head">
           {view === "home" ? (
             <span className="tm-modal-nav-spacer" />
           ) : (
-            <button className="tm-modal-nav" onClick={() => setView("home")} aria-label={t.back}>
+            <button className="tm-modal-nav" onClick={() => leave(() => setView("home"))} aria-label={t.back}>
               <BackIcon />
             </button>
           )}
           <span className="tm-modal-title">{title}</span>
-          <button className="tm-modal-nav" onClick={onClose} aria-label={t.close}>
+          <button className="tm-modal-nav" onClick={() => leave(onClose)} aria-label={t.close}>
             <CloseIcon />
           </button>
         </div>
@@ -189,6 +226,9 @@ export default function TaskMenu({
             <button className="tm-modal-opt" onClick={() => setView("project")} aria-label={t.changeProject}>
               <FolderIcon />
               <span className="tm-modal-opt-sub">{current ? current.name : t.project}</span>
+            </button>
+            <button className="tm-modal-opt" onClick={() => setView("description")} aria-label={t.changeDescription}>
+              <NoteIcon dot={hasDescription(task)} /><span>{t.description}</span>
             </button>
             <button className="tm-modal-opt is-danger" onClick={() => { onDelete(); onClose(); }} aria-label={t.deleteTask}>
               <TrashIcon /><span>{t.delete}</span>
@@ -260,6 +300,45 @@ export default function TaskMenu({
                 className="tm-modal-btn is-primary"
                 disabled={!draft}
                 onClick={() => { onDeadlineChange(draft); onClose(); }}
+              >
+                {t.save}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {view === "description" && (
+          <div className="tm-modal-body">
+            <textarea
+              className="tm-modal-textarea"
+              value={descDraft}
+              maxLength={DESCRIPTION_MAX}
+              rows={7}
+              autoFocus
+              placeholder={t.descriptionPlaceholder}
+              aria-label={t.description}
+              onChange={(e) => setDescDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  saveDescription();
+                  onClose();
+                }
+              }}
+            />
+            <div className="tm-modal-actions">
+              {hasDescription(task) && (
+                <button
+                  className="tm-modal-btn"
+                  onClick={() => { setDescription(task.id, ""); onClose(); }}
+                >
+                  {t.removeDescription}
+                </button>
+              )}
+              <button
+                className="tm-modal-btn is-primary"
+                disabled={!descDirty}
+                onClick={() => { saveDescription(); onClose(); }}
               >
                 {t.save}
               </button>

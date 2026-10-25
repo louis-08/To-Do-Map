@@ -19,6 +19,10 @@ def _task_line(task: dict, project_names: dict[str, str] | None = None) -> str:
     project = (project_names or {}).get(task.get("project_id"))
     if project:
         line += f" `[{project}]`"
+    description = (task.get("description") or "").strip()
+    if description:
+        # Indented blockquote keeps multi-line text attached to its list item.
+        line += "".join(f"\n  > {part}".rstrip() for part in description.splitlines())
     return line
 
 

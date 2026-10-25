@@ -1,9 +1,18 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Literal, Optional
 import datetime
 
 # Task priority. "none" is the default; "medium" is shown yellow, "high" red.
 Priority = Literal["none", "medium", "high"]
+
+DESCRIPTION_MAX = 10000
+
+
+def _clean_description(value: Optional[str]) -> Optional[str]:
+    """Whitespace-only text counts as "no description" and is stored as ''."""
+    if value is None:
+        return None
+    return value if value.strip() else ""
 
 
 class TaskCreate(BaseModel):
@@ -16,6 +25,9 @@ class TaskCreate(BaseModel):
     project_id: Optional[str] = None  # None = "(kein Projekt)"
     deadline: Optional[datetime.date] = None
     priority: Priority = "none"
+    description: str = Field(default="", max_length=DESCRIPTION_MAX)
+
+    _clean_description = field_validator("description")(_clean_description)
 
 
 class TaskUpdate(BaseModel):
@@ -32,6 +44,10 @@ class TaskUpdate(BaseModel):
     deadline: Optional[datetime.date] = None
     # "none" resets the priority; null/omitted = unchanged.
     priority: Optional[Priority] = None
+    # "" removes the description; null/omitted = unchanged (legacy null rule).
+    description: Optional[str] = Field(default=None, max_length=DESCRIPTION_MAX)
+
+    _clean_description = field_validator("description")(_clean_description)
 
     def to_patch(self) -> dict:
         """Build the column patch for Supabase.
