@@ -1,5 +1,5 @@
-// Run: npm test   (node --test, native TypeScript type stripping)
-import { test } from "node:test";
+// Run: npm test   (vitest)
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import type { Project, Task } from "./api";
 import {
@@ -12,7 +12,7 @@ import {
   inLane,
   moveTo,
   parseCellId,
-} from "./board.ts";
+} from "./board";
 
 let seq = 0;
 function task(p: Partial<Task>): Task {
@@ -27,6 +27,7 @@ function task(p: Partial<Task>): Task {
     is_weekly_objective: false,
     scope: "day",
     project_id: null,
+    deadline: null,
     created_at: "2026-10-01T00:00:00Z",
     ...p,
   };

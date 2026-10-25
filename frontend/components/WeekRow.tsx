@@ -32,6 +32,7 @@ type Props = {
   onDelete: (id: string) => void;
   onColorChange: (id: string, color: string | null) => void;
   onEdit: (id: string, text: string) => void;
+  onDeadlineChange: (id: string, deadline: string | null) => void;
   currentRef?: React.RefObject<HTMLDivElement | null>;
   todayRef?: React.RefObject<HTMLDivElement | null>;
 };
@@ -71,7 +72,7 @@ const WeekRow = memo(function WeekRow(props: Props) {
 
 /** Normal view: one row per week, tasks carry a project label. */
 function PlainWeek({
-  week, tasks, onAddTask, onAddWeeklyTask, onToggle, onDelete, onColorChange, onEdit, currentRef, todayRef,
+  week, tasks, onAddTask, onAddWeeklyTask, onToggle, onDelete, onColorChange, onEdit, onDeadlineChange, currentRef, todayRef,
 }: Props) {
   const today = isoToday();
   const mondayISO = toISO(week.monday);
@@ -99,6 +100,7 @@ function PlainWeek({
             onDelete={onDelete}
             onColorChange={onColorChange}
             onEdit={onEdit}
+            onDeadlineChange={onDeadlineChange}
             todayRef={state === "today" ? todayRef : undefined}
           />
         );
@@ -115,6 +117,7 @@ function PlainWeek({
         onDelete={onDelete}
         onColorChange={onColorChange}
         onEdit={onEdit}
+        onDeadlineChange={onDeadlineChange}
       />
     </div>
   );
@@ -126,7 +129,7 @@ function PlainWeek({
  * lane re-assigns its project.
  */
 function LanedWeek({
-  week, tasks, onAddTask, onAddWeeklyTask, onToggle, onDelete, onColorChange, onEdit, currentRef, todayRef,
+  week, tasks, onAddTask, onAddWeeklyTask, onToggle, onDelete, onColorChange, onEdit, onDeadlineChange, currentRef, todayRef,
 }: Props) {
   const { t } = useI18n();
   const { projects } = useProjects();
@@ -182,6 +185,7 @@ function LanedWeek({
                   onDelete={onDelete}
                   onColorChange={onColorChange}
                   onEdit={onEdit}
+                  onDeadlineChange={onDeadlineChange}
                 />
               );
             })}
@@ -198,6 +202,7 @@ function LanedWeek({
               onDelete={onDelete}
               onColorChange={onColorChange}
               onEdit={onEdit}
+              onDeadlineChange={onDeadlineChange}
             />
           </div>
         );

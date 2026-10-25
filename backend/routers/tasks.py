@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from models import TaskCreate, TaskUpdate, ReorderRequest, NULLABLE_TASK_FIELDS
+from models import TaskCreate, TaskUpdate, ReorderRequest
 from auth import get_current_user
 from database import get_db
 from routers.projects import assert_projects_owned
@@ -37,6 +37,7 @@ async def create_task(body: TaskCreate, user_id: str = Depends(get_current_user)
             "is_weekly_objective": body.is_weekly_objective,
             "scope": body.scope,
             "project_id": body.project_id,
+            "deadline": str(body.deadline) if body.deadline else None,
         })
         .execute()
     )
@@ -67,11 +68,7 @@ async def update_task(
     task_id: str, body: TaskUpdate, user_id: str = Depends(get_current_user)
 ):
     db = get_db()
-    sent = body.model_dump(exclude_unset=True)
-    patch = {
-        k: v for k, v in sent.items()
-        if v is not None or k in NULLABLE_TASK_FIELDS
-    }
+    patch = body.to_patch()
     if "project_id" in patch:
         assert_projects_owned(db, user_id, [patch["project_id"]])
     if not patch:
@@ -81,8 +78,6 @@ async def update_task(
             db.table("tasks").select("*").eq("id", task_id).eq("user_id", user_id).execute()
         )
         return {"data": current.data[0] if current.data else None}
-    if "date" in patch:
-        patch["date"] = str(patch["date"])
     result = (
         db.table("tasks")
         .update(patch)
@@ -115,6 +110,7 @@ async def delete_task(task_id: str, user_id: str = Depends(get_current_user)):
         "scope": task.data.get("scope") or "day",
         "is_weekly_objective": bool(task.data.get("is_weekly_objective")),
         "project_id": task.data.get("project_id"),
+        "deadline": task.data.get("deadline"),
     }).execute()
     db.table("tasks").delete().eq("id", task_id).eq("user_id", user_id).execute()
     # Keep only latest 30 deleted tasks per user

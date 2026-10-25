@@ -11,6 +11,7 @@ class TaskCreate(BaseModel):
     is_weekly_objective: bool = False
     scope: str = "day"
     project_id: Optional[str] = None  # None = "(kein Projekt)"
+    deadline: Optional[datetime.date] = None
 
 
 class TaskUpdate(BaseModel):
@@ -21,14 +22,34 @@ class TaskUpdate(BaseModel):
     date: Optional[datetime.date] = None
     is_weekly_objective: Optional[bool] = None
     scope: Optional[str] = None
-    # Explicit null clears the project. Omitted = unchanged.
+    # Explicit null clears the project ("Kein Projekt"). Omitted = unchanged.
     project_id: Optional[str] = None
+    # Explicit null clears the deadline. Omitted = unchanged.
+    deadline: Optional[datetime.date] = None
+
+    def to_patch(self) -> dict:
+        """Build the column patch for Supabase.
+
+        Legacy fields keep their historical behaviour (null = untouched), so
+        existing clients such as the MCP server that send nulls are unaffected.
+        Only the fields in NULLABLE_TASK_FIELDS can be explicitly cleared; for
+        them omitted and null are told apart via `model_fields_set`.
+        """
+        patch = {
+            k: v for k, v in self.model_dump().items()
+            if v is not None and k not in NULLABLE_TASK_FIELDS
+        }
+        if "date" in patch:
+            patch["date"] = str(patch["date"])
+        if "project_id" in self.model_fields_set:
+            patch["project_id"] = self.project_id
+        if "deadline" in self.model_fields_set:
+            patch["deadline"] = str(self.deadline) if self.deadline is not None else None
+        return patch
 
 
 # Fields where an explicitly sent null is meaningful (clear the value).
-# For all other TaskUpdate fields null keeps the legacy meaning "unchanged",
-# so existing clients (e.g. the MCP server) that send nulls are unaffected.
-NULLABLE_TASK_FIELDS = {"project_id"}
+NULLABLE_TASK_FIELDS = {"project_id", "deadline"}
 
 
 class ReorderItem(BaseModel):

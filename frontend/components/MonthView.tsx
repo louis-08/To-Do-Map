@@ -78,6 +78,7 @@ export default function MonthView({
   onDelete,
   onColorChange,
   onEdit,
+  onDeadlineChange,
   onReorder,
   onExport,
 }: {
@@ -91,6 +92,7 @@ export default function MonthView({
   onDelete: (id: string) => void;
   onColorChange: (id: string, color: string | null) => void;
   onEdit: (id: string, text: string) => void;
+  onDeadlineChange: (id: string, deadline: string | null) => void;
   onReorder: (updates: ReorderUpdate[]) => void;
   onExport: () => void;
 }) {
@@ -358,6 +360,7 @@ export default function MonthView({
                   onDelete={onDelete}
                   onColorChange={onColorChange}
                   onEdit={onEdit}
+                  onDeadlineChange={onDeadlineChange}
                   currentRef={week.isCurrent ? currentRef : undefined}
                   todayRef={week.isCurrent ? todayCellRef : undefined}
                 />
@@ -395,6 +398,7 @@ export default function MonthView({
             onDelete={onDelete}
             onColorChange={onColorChange}
             onEdit={onEdit}
+            onDeadlineChange={onDeadlineChange}
             onReorder={onReorder}
           />
         </div>

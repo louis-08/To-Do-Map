@@ -205,7 +205,23 @@ body {
 .state-past .tm-task { background: #efeff1; border-color: #e4e4e8; }
 .tm-task.is-dragging { opacity: .4; }
 .tm-task-text { font-size: var(--task-fs); line-height: 1.35; color: var(--ink); flex: 1 1 auto; word-break: break-word; padding-right: 24px; }
+/* Text + deadline chip stack. The right padding keeps both clear of the menu button. */
+.tm-task-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding-right: 24px; }
+.tm-task-body .tm-task-text { flex: 0 0 auto; padding-right: 0; }
 .tm-task.is-done .tm-task-text { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+
+/* ---------- deadline chip ---------- */
+.tm-deadline {
+  align-self: flex-start;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 6px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; line-height: 1.3; white-space: nowrap;
+  color: var(--ink-soft); background: rgba(16,16,26,.06);
+}
+.tm-deadline svg { flex: 0 0 auto; }
+.tm-deadline.is-today   { color: #6b4a00; background: color-mix(in srgb, var(--accent) 38%, #fff); }
+.tm-deadline.is-overdue { color: #b42318; background: #fde7e4; }
+.tm-deadline.is-done    { color: var(--muted); background: rgba(16,16,26,.04); }
 
 .tm-check {
   flex: 0 0 auto;
@@ -286,8 +302,27 @@ body {
   cursor: pointer; transition: background .12s ease, color .12s ease, border-color .12s ease;
 }
 .tm-modal-opt:hover { background: var(--line); }
+.tm-modal-grid > .tm-modal-opt:nth-child(odd):last-child { grid-column: 1 / -1; }
 .tm-modal-opt.is-danger:hover { background: #fde7e4; border-color: #e5604d; color: #c0392b; }
 .tm-modal-body { padding: 14px 12px; }
+.tm-modal-date {
+  width: 100%; padding: 9px 10px; font-family: inherit;
+  font-size: 16px; /* >=16px stops iOS Safari from zooming on focus */
+  color: var(--ink); background: var(--canvas);
+  border: 1px solid var(--line-strong); border-radius: 10px;
+}
+.tm-modal-date:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tm-modal-actions { display: flex; gap: 8px; margin-top: 12px; }
+.tm-modal-btn {
+  flex: 1 1 0; padding: 9px 10px; font-family: inherit; font-size: 13px; font-weight: 600;
+  color: var(--ink); background: var(--canvas);
+  border: 1px solid var(--line-strong); border-radius: 10px; cursor: pointer;
+  transition: background .12s ease, opacity .12s ease;
+}
+.tm-modal-btn:hover { background: var(--line); }
+.tm-modal-btn.is-primary { background: var(--accent); border-color: color-mix(in srgb, var(--accent) 70%, #000); }
+.tm-modal-btn.is-primary:hover { background: color-mix(in srgb, var(--accent) 88%, #000); }
+.tm-modal-btn:disabled { opacity: .45; cursor: not-allowed; }
 .tm-modal-colors { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; padding: 4px; }
 .tm-modal-colors .tm-color-sw { width: 28px; height: 28px; }
 
@@ -485,11 +520,8 @@ body {
 }
 
 /* ---------- projects: label on tasks ---------- */
-.tm-task-body {
-  flex: 1 1 auto; min-width: 0; padding-right: 24px;
-  display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
-}
-.tm-task-body .tm-task-text { padding-right: 0; width: 100%; }
+/* Deadline chip and project label share one wrapping row under the text. */
+.tm-task-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; max-width: 100%; }
 .tm-task-project {
   display: inline-flex; align-items: center; gap: 5px; max-width: 100%;
   font-size: 10.5px; font-weight: 600; line-height: 1.3; color: var(--ink-soft);

@@ -18,6 +18,7 @@ export default function QuarterCell({
   onDelete,
   onColorChange,
   onEdit,
+  onDeadlineChange,
 }: {
   quarter: number;
   quarterISO: string;
@@ -29,6 +30,7 @@ export default function QuarterCell({
   onDelete: (id: string) => void;
   onColorChange: (id: string, color: string | null) => void;
   onEdit: (id: string, text: string) => void;
+  onDeadlineChange: (id: string, deadline: string | null) => void;
 }) {
   const { t } = useI18n();
   const { setNodeRef, isOver } = useDroppable({ id: "quarter:" + quarterISO });
@@ -59,6 +61,7 @@ export default function QuarterCell({
               onDelete={() => onDelete(task.id)}
               onColorChange={(color) => onColorChange(task.id, color)}
               onEdit={(text) => onEdit(task.id, text)}
+              onDeadlineChange={(deadline) => onDeadlineChange(task.id, deadline)}
             />
           ))}
         </div>

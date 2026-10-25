@@ -15,7 +15,7 @@ DEFAULTS = {
     "tasks": lambda: {
         "id": str(uuid.uuid4()), "done": False, "color": None,
         "is_weekly_objective": False, "scope": "day", "project_id": None,
-        "created_at": _NOW(),
+        "deadline": None, "created_at": _NOW(),
     },
     "projects": lambda: {
         "id": str(uuid.uuid4()), "color": None, "position": 0,
@@ -23,7 +23,8 @@ DEFAULTS = {
     },
     "deleted_tasks": lambda: {
         "id": str(uuid.uuid4()), "color": None, "scope": "day",
-        "is_weekly_objective": False, "project_id": None, "deleted_at": _NOW(),
+        "is_weekly_objective": False, "project_id": None, "deadline": None,
+        "deleted_at": _NOW(),
     },
     "weekly_objectives": lambda: {"id": str(uuid.uuid4()), "text": ""},
     "rollover_log": lambda: {},
@@ -172,7 +173,10 @@ class Query:
 
 class FakeDB:
     def __init__(self):
-        self.tables: dict[str, list[dict]] = {}
+        # Pre-create the tables tests inspect directly via `db.tables[...]`.
+        self.tables: dict[str, list[dict]] = {
+            "tasks": [], "deleted_tasks": [], "weekly_objectives": [], "projects": [],
+        }
 
     def rows(self, table: str) -> list[dict]:
         return self.tables.setdefault(table, [])

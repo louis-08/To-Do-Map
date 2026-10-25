@@ -31,7 +31,7 @@ Important files:
 - `frontend/lib/api.ts` is the typed API client. It defaults to the same-origin `/api` path.
 - `frontend/lib/dates.ts` contains date utilities.
 - `frontend/lib/i18n.tsx` contains app text and locale strings.
-- `frontend/lib/board.ts` is the pure week-board logic: project lanes, droppable ids, drag-and-drop reordering. Unit tested in `frontend/lib/board.test.ts`.
+- `frontend/lib/board.ts` is the pure week-board logic: project lanes, droppable ids, drag-and-drop reordering. Unit tested in `frontend/lib/board.test.ts` (vitest).
 - `frontend/lib/projects.tsx` provides projects and project actions to all components via React context.
 - `frontend/proxy.ts` protects routes with Clerk. This is named `proxy.ts` for Next.js 16; do not rename it to `middleware.ts`.
 
@@ -42,7 +42,6 @@ cd frontend
 npm run dev
 npm run build
 npm run start
-npm test      # board logic, node --test (Node >= 22.18)
 ```
 
 Frontend environment variables:
@@ -76,14 +75,6 @@ cd backend
 .\.venv\Scripts\python.exe -m uvicorn main:app --reload
 ```
 
-Tests (in-memory fake of the Supabase client, no database needed):
-
-```bash
-cd backend
-pip install -r requirements-dev.txt
-python -m pytest
-```
-
 Backend environment variables:
 
 - `SUPABASE_URL`
@@ -98,12 +89,13 @@ Supabase stores the app data.
 Important files:
 
 - `db/schema.sql` contains the base schema.
+- `db/migration_deadline.sql` adds `tasks.deadline` and `deleted_tasks.deadline` (both nullable `DATE`). It is idempotent. Run it in the Supabase SQL editor **before** deploying the backend that uses it; the API inserts a `deadline` key on every task create and delete, so those calls fail while the column is missing.
 - `db/migration_projects.sql` adds projects. Run it before deploying the projects feature.
 - `db/migration_reminders.sql` is historical and may remain applied. The reminder columns and `push_subscriptions` table are unused by the application and can be cleaned up later with a separate migration.
 
 Main tables:
 
-- `tasks`: user tasks, dates, ordering, completion, colors, and scopes.
+- `tasks`: user tasks, dates, ordering, completion, colors, scopes, and an optional `deadline` date.
 - `weekly_objectives`: one weekly objective per user and week.
 - `deleted_tasks`: soft-deleted tasks shown in trash. The backend keeps only the latest 30 per user.
 - `rollover_log`: tracks whether rollover already ran for a user on a given day.
@@ -116,10 +108,28 @@ Main tables:
 - Week view, normal mode: each task shows a project label.
 - Week view, project mode (lanes button in the top bar, stored in `localStorage`): every week is split into horizontal lanes, one per active project, plus deleted projects that still have tasks that week, plus "Kein Projekt". Dragging a task into another lane re-assigns its project; `+` in a lane creates the task in that project.
 - Task order (`position`) is kept per day column across all projects, so both modes show the same relative order.
-- API semantics: in `PATCH /api/tasks/{id}` and `PATCH /api/tasks/reorder`, an omitted `project_id` means unchanged and an explicit `null` clears it. All other task fields keep the legacy rule "null = unchanged".
+- API semantics: in `PATCH /api/tasks/{id}` and `PATCH /api/tasks/reorder`, an omitted `project_id` means unchanged and an explicit `null` clears it (same for `deadline` on `PATCH /api/tasks/{id}`). All other task fields keep the legacy rule "null = unchanged".
+
+## Tests
+
+Backend (pytest, in-memory fake of the Supabase client, no credentials needed):
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+python -m pytest
+```
+
+Frontend (vitest):
+
+```bash
+cd frontend
+npm test
+```
 
 ## Deployment Checklist
 
+0. Apply any new file in `db/` (currently `migration_deadline.sql` and `migration_projects.sql`) to Supabase first.
 1. In Vercel project settings, select the Services framework.
 2. Build the frontend with `npm.cmd run build` from `frontend`.
 3. Set Clerk variables for the frontend and Supabase, Clerk JWKS, and CORS variables for the backend service.

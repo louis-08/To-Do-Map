@@ -25,6 +25,7 @@ CREATE TABLE tasks (
   is_weekly_objective BOOLEAN NOT NULL DEFAULT FALSE,
   scope             TEXT NOT NULL DEFAULT 'day',   -- day | month | quarter | year
   project_id        UUID REFERENCES projects(id) ON DELETE SET NULL,  -- NULL = no project
+  deadline          DATE DEFAULT NULL,
   remind_at         TIMESTAMPTZ DEFAULT NULL,
   reminder_sent_at  TIMESTAMPTZ DEFAULT NULL,
   created_at        TIMESTAMPTZ DEFAULT now()
@@ -65,6 +66,7 @@ CREATE TABLE deleted_tasks (
   scope       TEXT NOT NULL DEFAULT 'day',
   is_weekly_objective BOOLEAN NOT NULL DEFAULT FALSE,
   project_id  UUID REFERENCES projects(id) ON DELETE SET NULL,
+  deadline    DATE DEFAULT NULL,
   deleted_at  TIMESTAMPTZ DEFAULT now()
 );
 

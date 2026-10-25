@@ -1,3 +1,9 @@
+"""Test fixtures: the FastAPI app wired to an in-memory fake of the Supabase
+client (tests/fake_db.py), so routers are tested without network or credentials.
+
+The authenticated user comes from the `X-Test-User` header (default USER_ID),
+which makes isolation between users testable."""
+
 import os
 
 import pytest
@@ -6,31 +12,34 @@ from fastapi.testclient import TestClient
 
 os.environ.setdefault("CLERK_JWKS_URL", "https://example.invalid/.well-known/jwks.json")
 
-import main  # noqa: E402
-from auth import get_current_user  # noqa: E402
-from routers import tasks, objectives, trash, rollover, export, account, settings, projects  # noqa: E402
-from tests.fake_db import FakeDB  # noqa: E402
+from fake_db import FakeDB  # noqa: E402
 
-ROUTER_MODULES = [tasks, objectives, trash, rollover, export, account, settings, projects]
+USER_ID = "user_a"
 
 
 @pytest.fixture
-def db(monkeypatch):
+def db(monkeypatch) -> FakeDB:
     fake = FakeDB()
-    for mod in ROUTER_MODULES:
-        monkeypatch.setattr(mod, "get_db", lambda: fake)
+    # Routers bind `get_db` by name at import time, so patch each module.
+    from routers import account, export, objectives, projects, rollover, settings, tasks, trash
+
+    for module in (account, export, objectives, projects, rollover, settings, tasks, trash):
+        monkeypatch.setattr(module, "get_db", lambda: fake)
     return fake
 
 
 @pytest.fixture
 def client(db):
-    # The user id comes from a test header so isolation between users is testable.
-    async def fake_user(x_test_user: str = Header(default="user_a")) -> str:
+    from auth import get_current_user
+    from main import app
+
+    async def fake_user(x_test_user: str = Header(default=USER_ID)) -> str:
         return x_test_user
 
-    main.app.dependency_overrides[get_current_user] = fake_user
-    yield TestClient(main.app)
-    main.app.dependency_overrides.clear()
+    app.dependency_overrides[get_current_user] = fake_user
+    with TestClient(app) as c:
+        yield c
+    app.dependency_overrides.clear()
 
 
 def as_user(user: str) -> dict:

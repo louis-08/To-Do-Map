@@ -36,6 +36,8 @@ export type Task = {
   scope: TaskScope;
   // null = "(kein Projekt)". May reference a soft-deleted project.
   project_id: string | null;
+  // `YYYY-MM-DD`, or null when the task has no deadline.
+  deadline: string | null;
   created_at: string;
 };
 
@@ -77,6 +79,7 @@ export type DeletedTask = {
   date: string;
   text: string;
   color: string | null;
+  deadline?: string | null;
   deleted_at: string;
 };
 
@@ -86,10 +89,10 @@ export function api(getToken: () => Promise<string | null>) {
       list: (start: string, end: string) =>
         req<{ data: Task[] }>(`/tasks?start=${start}&end=${end}`, { method: "GET" }, getToken),
 
-      create: (body: { date: string; text: string; color: string | null; position: number; is_weekly_objective: boolean; scope?: TaskScope; project_id?: string | null }) =>
+      create: (body: { date: string; text: string; color: string | null; position: number; is_weekly_objective: boolean; scope?: TaskScope; project_id?: string | null; deadline?: string | null }) =>
         req<{ data: Task }>("/tasks", { method: "POST", body: JSON.stringify(body) }, getToken),
 
-      update: (id: string, body: Partial<Pick<Task, "text" | "done" | "color" | "position" | "date" | "project_id">>) =>
+      update: (id: string, body: Partial<Pick<Task, "text" | "done" | "color" | "position" | "date" | "project_id" | "deadline">>) =>
         req<{ data: Task }>(`/tasks/${id}`, { method: "PATCH", body: JSON.stringify(body) }, getToken),
 
       delete: (id: string) =>

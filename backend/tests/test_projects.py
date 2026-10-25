@@ -1,4 +1,4 @@
-from tests.conftest import as_user
+from conftest import as_user
 
 
 def make_project(client, name="Uni", color=None, user="user_a"):
@@ -175,3 +175,32 @@ def test_account_delete_removes_projects(client, db):
     make_task(client)
     client.delete("/api/account")
     assert db.rows("projects") == [] and db.rows("tasks") == []
+
+
+# ---------------------------------------------------------------- with deadlines
+
+def test_project_and_deadline_are_independent_nullable_fields(client):
+    p = make_project(client)
+    t = make_task(client, p["id"], deadline="2026-11-15")
+    tid = t["id"]
+    # Clearing one leaves the other untouched.
+    r = client.patch(f"/api/tasks/{tid}", json={"deadline": None}).json()["data"]
+    assert (r["deadline"], r["project_id"]) == (None, p["id"])
+    r = client.patch(f"/api/tasks/{tid}", json={"deadline": "2026-12-01", "project_id": None}).json()["data"]
+    assert (r["deadline"], r["project_id"]) == ("2026-12-01", None)
+
+
+def test_export_line_with_deadline_and_project(client):
+    p = make_project(client, "Uni")
+    make_task(client, p["id"], text="Klausur", deadline="2026-11-15")
+    md = client.get("/api/export/markdown").text
+    assert "- [ ] Klausur (Deadline: 2026-11-15) `[Uni]`" in md
+
+
+def test_trash_keeps_deadline_and_project(client):
+    p = make_project(client)
+    t = make_task(client, p["id"], deadline="2026-11-15")
+    client.delete(f"/api/tasks/{t['id']}")
+    client.post(f"/api/trash/{t['id']}/restore")
+    row = list_tasks(client)[0]
+    assert (row["deadline"], row["project_id"]) == ("2026-11-15", p["id"])
