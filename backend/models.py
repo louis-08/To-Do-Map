@@ -10,6 +10,7 @@ class TaskCreate(BaseModel):
     position: int
     is_weekly_objective: bool = False
     scope: str = "day"
+    project_id: Optional[str] = None  # None = "(kein Projekt)"
     deadline: Optional[datetime.date] = None
 
 
@@ -21,22 +22,34 @@ class TaskUpdate(BaseModel):
     date: Optional[datetime.date] = None
     is_weekly_objective: Optional[bool] = None
     scope: Optional[str] = None
-    # `null` means "clear the deadline"; an omitted key means "leave unchanged".
-    # The two are told apart via `model_fields_set` in `to_patch`.
+    # Explicit null clears the project ("Kein Projekt"). Omitted = unchanged.
+    project_id: Optional[str] = None
+    # Explicit null clears the deadline. Omitted = unchanged.
     deadline: Optional[datetime.date] = None
 
     def to_patch(self) -> dict:
         """Build the column patch for Supabase.
 
-        Existing fields keep their historical behaviour (None = untouched).
-        `deadline` is the only field that can be explicitly cleared.
+        Legacy fields keep their historical behaviour (null = untouched), so
+        existing clients such as the MCP server that send nulls are unaffected.
+        Only the fields in NULLABLE_TASK_FIELDS can be explicitly cleared; for
+        them omitted and null are told apart via `model_fields_set`.
         """
-        patch = {k: v for k, v in self.model_dump().items() if v is not None and k != "deadline"}
+        patch = {
+            k: v for k, v in self.model_dump().items()
+            if v is not None and k not in NULLABLE_TASK_FIELDS
+        }
         if "date" in patch:
             patch["date"] = str(patch["date"])
+        if "project_id" in self.model_fields_set:
+            patch["project_id"] = self.project_id
         if "deadline" in self.model_fields_set:
             patch["deadline"] = str(self.deadline) if self.deadline is not None else None
         return patch
+
+
+# Fields where an explicitly sent null is meaningful (clear the value).
+NULLABLE_TASK_FIELDS = {"project_id", "deadline"}
 
 
 class ReorderItem(BaseModel):
@@ -45,6 +58,8 @@ class ReorderItem(BaseModel):
     position: int
     is_weekly_objective: Optional[bool] = None
     scope: Optional[str] = None
+    # Explicit null moves the task to "(kein Projekt)". Omitted = unchanged.
+    project_id: Optional[str] = None
 
 
 class ReorderRequest(BaseModel):
@@ -57,3 +72,18 @@ class ObjectiveUpsert(BaseModel):
 
 class SettingsUpdate(BaseModel):
     auto_rollover: bool
+
+
+class ProjectCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+    color: Optional[str] = Field(default=None, max_length=50)
+
+
+class ProjectUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=60)
+    # Explicit null removes the color. Omitted = unchanged.
+    color: Optional[str] = Field(default=None, max_length=50)
+
+
+class ProjectOrder(BaseModel):
+    ids: list[str]

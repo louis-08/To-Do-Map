@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from models import TaskCreate, TaskUpdate, ReorderRequest
 from auth import get_current_user
 from database import get_db
+from routers.projects import assert_projects_owned
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -24,6 +25,7 @@ async def list_tasks(start: str, end: str, user_id: str = Depends(get_current_us
 @router.post("")
 async def create_task(body: TaskCreate, user_id: str = Depends(get_current_user)):
     db = get_db()
+    assert_projects_owned(db, user_id, [body.project_id])
     result = (
         db.table("tasks")
         .insert({
@@ -34,6 +36,7 @@ async def create_task(body: TaskCreate, user_id: str = Depends(get_current_user)
             "position": body.position,
             "is_weekly_objective": body.is_weekly_objective,
             "scope": body.scope,
+            "project_id": body.project_id,
             "deadline": str(body.deadline) if body.deadline else None,
         })
         .execute()
@@ -44,12 +47,18 @@ async def create_task(body: TaskCreate, user_id: str = Depends(get_current_user)
 @router.patch("/reorder")
 async def reorder_tasks(body: ReorderRequest, user_id: str = Depends(get_current_user)):
     db = get_db()
+    assert_projects_owned(
+        db, user_id,
+        [i.project_id for i in body.updates if "project_id" in i.model_fields_set],
+    )
     for item in body.updates:
         update: dict = {"date": str(item.date), "position": item.position}
         if item.is_weekly_objective is not None:
             update["is_weekly_objective"] = item.is_weekly_objective
         if item.scope is not None:
             update["scope"] = item.scope
+        if "project_id" in item.model_fields_set:
+            update["project_id"] = item.project_id
         db.table("tasks").update(update).eq("id", item.id).eq("user_id", user_id).execute()
     return {"data": "ok"}
 
@@ -60,6 +69,15 @@ async def update_task(
 ):
     db = get_db()
     patch = body.to_patch()
+    if "project_id" in patch:
+        assert_projects_owned(db, user_id, [patch["project_id"]])
+    if not patch:
+        # Nothing to change: answer with the current row instead of sending an
+        # empty UPDATE (which PostgREST rejects).
+        current = (
+            db.table("tasks").select("*").eq("id", task_id).eq("user_id", user_id).execute()
+        )
+        return {"data": current.data[0] if current.data else None}
     result = (
         db.table("tasks")
         .update(patch)
@@ -89,6 +107,9 @@ async def delete_task(task_id: str, user_id: str = Depends(get_current_user)):
         "date": task.data["date"],
         "text": task.data["text"],
         "color": task.data["color"],
+        "scope": task.data.get("scope") or "day",
+        "is_weekly_objective": bool(task.data.get("is_weekly_objective")),
+        "project_id": task.data.get("project_id"),
         "deadline": task.data.get("deadline"),
     }).execute()
     db.table("tasks").delete().eq("id", task_id).eq("user_id", user_id).execute()

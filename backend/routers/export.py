@@ -9,11 +9,14 @@ from database import get_db
 router = APIRouter(tags=["export"])
 
 
-def _task_line(task: dict) -> str:
+def _task_line(task: dict, project_names: dict[str, str] | None = None) -> str:
     check = "x" if task["done"] else " "
     line = f"- [{check}] {task['text']}"
     if task.get("deadline"):
         line += f" (Deadline: {task['deadline']})"
+    project = (project_names or {}).get(task.get("project_id"))
+    if project:
+        line += f" `[{project}]`"
     return line
 
 
@@ -35,6 +38,14 @@ def _build_markdown(user_id: str) -> str:
         .order("week_start")
         .execute()
     ).data
+
+    projects = (
+        db.table("projects")
+        .select("id, name")
+        .eq("user_id", user_id)
+        .execute()
+    ).data
+    project_names = {p["id"]: p["name"] for p in projects}
 
     obj_map = {o["week_start"]: o["text"] for o in objectives}
 
@@ -70,7 +81,7 @@ def _build_markdown(user_id: str) -> str:
 
         day_label = d.strftime("%A %d.%m")
         lines.append(f"\n**{day_label}**")
-        lines.append(_task_line(task))
+        lines.append(_task_line(task, project_names))
 
     month_tasks = [t for t in tasks if t.get("scope") == "month"]
     if month_tasks:
@@ -81,7 +92,7 @@ def _build_markdown(user_id: str) -> str:
             if (d.year, d.month) != cur:
                 cur = (d.year, d.month)
                 lines.append(f"\n### {d.strftime('%B %Y')}")
-            lines.append(_task_line(t))
+            lines.append(_task_line(t, project_names))
 
     quarter_tasks = [t for t in tasks if t.get("scope") == "quarter"]
     if quarter_tasks:
@@ -93,7 +104,7 @@ def _build_markdown(user_id: str) -> str:
             if (d.year, q) != cur:
                 cur = (d.year, q)
                 lines.append(f"\n### Q{q} {d.year}")
-            lines.append(_task_line(t))
+            lines.append(_task_line(t, project_names))
 
     year_tasks = [t for t in tasks if t.get("scope") == "year"]
     if year_tasks:
@@ -104,7 +115,7 @@ def _build_markdown(user_id: str) -> str:
             if d.year != cur:
                 cur = d.year
                 lines.append(f"\n### {d.year}")
-            lines.append(_task_line(t))
+            lines.append(_task_line(t, project_names))
 
     return "\n".join(lines)
 

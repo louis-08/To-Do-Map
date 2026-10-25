@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Task } from "@/lib/api";
 import { TASK_COLORS } from "./ColorPicker";
+import { projectDotColor } from "./ProjectLabel";
 import { useI18n } from "@/lib/i18n";
+import { useProjects } from "@/lib/projects";
+import { assignableProjects } from "@/lib/board";
 
 function PencilIcon() {
   return (
@@ -37,6 +40,15 @@ function TrashIcon() {
   );
 }
 
+function FolderIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width={20} height={20} aria-hidden="true">
+      <path d="M2.2 4.6c0-.66.54-1.2 1.2-1.2h2.7l1.4 1.5h5.1c.66 0 1.2.54 1.2 1.2v5.6c0 .66-.54 1.2-1.2 1.2H3.4c-.66 0-1.2-.54-1.2-1.2z"
+            fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function CalendarIcon({ active }: { active: boolean }) {
   return (
     <svg viewBox="0 0 16 16" width={20} height={20} aria-hidden="true">
@@ -63,10 +75,11 @@ function CloseIcon() {
   );
 }
 
-type View = "home" | "color" | "deadline";
+type View = "home" | "color" | "deadline" | "project";
 
 // The menu is portalled to <body>, but React still bubbles its events up to the
-// task card (dnd-kit drag handlers, double-click-to-edit). Stop them at the overlay.
+// task card (dnd-kit drag handlers, double-click-to-edit). Stop them at the overlay
+// so typing/selecting in the modal never starts a drag or edit mode.
 const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
 export default function TaskMenu({
@@ -85,8 +98,31 @@ export default function TaskMenu({
   onClose: () => void;
 }) {
   const { t } = useI18n();
+  const { projects, byId, assignProject, createProject } = useProjects();
   const [view, setView] = useState<View>("home");
   const [mounted, setMounted] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  const current = task.project_id ? byId.get(task.project_id) : undefined;
+  const options = assignableProjects(projects, task.project_id);
+
+  function pick(projectId: string | null) {
+    if (projectId !== task.project_id) assignProject(task.id, projectId);
+    onClose();
+  }
+
+  async function createAndPick() {
+    const name = newName.trim();
+    if (!name || creating) return;
+    setCreating(true);
+    try {
+      const p = await createProject(name, null);
+      pick(p.id);
+    } catch {
+      setCreating(false);
+    }
+  }
   const [draft, setDraft] = useState(task.deadline ?? "");
 
   useEffect(() => { setMounted(true); }, []);
@@ -99,17 +135,23 @@ export default function TaskMenu({
 
   if (!mounted) return null;
 
-  const title = view === "color" ? t.color : view === "deadline" ? t.deadline : task.text;
+  const title =
+    view === "color" ? t.color
+    : view === "deadline" ? t.deadline
+    : view === "project" ? t.project
+    : task.text;
 
   return createPortal(
     <div
       className="tm-modal-overlay"
-      onClick={onClose}
-      onMouseDown={stop}
+      onClick={(e) => { e.stopPropagation(); onClose(); }}
       onPointerDown={stop}
+      onMouseDown={stop}
       onTouchStart={stop}
+      onTouchMove={stop}
       onTouchEnd={stop}
       onDoubleClick={stop}
+      onKeyDown={stop}
     >
       <div className="tm-modal" onClick={(e) => e.stopPropagation()}>
         <div className="tm-modal-head">
@@ -137,9 +179,52 @@ export default function TaskMenu({
             <button className="tm-modal-opt" onClick={() => setView("deadline")} aria-label={t.setDeadline}>
               <CalendarIcon active={!!task.deadline} /><span>{t.deadline}</span>
             </button>
+            <button className="tm-modal-opt" onClick={() => setView("project")} aria-label={t.changeProject}>
+              <FolderIcon />
+              <span className="tm-modal-opt-sub">{current ? current.name : t.project}</span>
+            </button>
             <button className="tm-modal-opt is-danger" onClick={() => { onDelete(); onClose(); }} aria-label={t.deleteTask}>
               <TrashIcon /><span>{t.delete}</span>
             </button>
+          </div>
+        )}
+
+        {view === "project" && (
+          <div className="tm-modal-body tm-project-pick">
+            <button
+              className={"tm-project-opt" + (task.project_id === null ? " is-sel" : "")}
+              onClick={() => pick(null)}
+            >
+              <i className="tm-project-dot is-none" />
+              <span>{t.noProject}</span>
+            </button>
+            {options.map((p) => (
+              <button
+                key={p.id}
+                className={"tm-project-opt" + (task.project_id === p.id ? " is-sel" : "")}
+                onClick={() => pick(p.id)}
+              >
+                <i className="tm-project-dot" style={{ background: projectDotColor(p.color) }} />
+                <span>{p.name}</span>
+                {p.deleted_at && <em className="tm-project-deleted">{t.deletedProject}</em>}
+              </button>
+            ))}
+            <form
+              className="tm-project-new"
+              onSubmit={(e) => { e.preventDefault(); createAndPick(); }}
+            >
+              <input
+                className="tab-input"
+                value={newName}
+                maxLength={60}
+                placeholder={t.newProjectPlaceholder}
+                onChange={(e) => setNewName(e.target.value)}
+                aria-label={t.projectName}
+              />
+              <button className="btn-ghost" type="submit" disabled={!newName.trim() || creating}>
+                {t.addProject}
+              </button>
+            </form>
           </div>
         )}
 

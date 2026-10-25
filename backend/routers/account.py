@@ -13,4 +13,6 @@ async def delete_account(user_id: str = Depends(get_current_user)):
     db.table("weekly_objectives").delete().eq("user_id", user_id).execute()
     db.table("rollover_log").delete().eq("user_id", user_id).execute()
     db.table("settings").delete().eq("user_id", user_id).execute()
+    # Last: tasks referencing projects are already gone.
+    db.table("projects").delete().eq("user_id", user_id).execute()
     return {"data": "ok"}

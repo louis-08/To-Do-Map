@@ -5,7 +5,7 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import tasks, objectives, trash, rollover, export, account, settings
+from routers import tasks, objectives, trash, rollover, export, account, settings, projects
 
 app = FastAPI(
     title="TodoMap API",
@@ -35,6 +35,7 @@ app.include_router(rollover.router, prefix="/api")
 app.include_router(export.router, prefix="/api")
 app.include_router(account.router, prefix="/api")
 app.include_router(settings.router, prefix="/api")
+app.include_router(projects.router, prefix="/api")
 
 
 @app.get("/api/health")

@@ -135,7 +135,7 @@ export default function YearView({
   }
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+    <DndContext id="year-dnd" sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
       <div className="tm-year">
         <div className="tm-year-head">
           <button className="tm-year-nav" onClick={() => onYearChange(year - 1)} aria-label={t.prevYear}>‹</button>

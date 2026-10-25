@@ -20,6 +20,7 @@ function task(overrides: Partial<Task> = {}): Task {
     is_weekly_objective: false,
     scope: "day",
     deadline: null,
+    project_id: null,
     created_at: "2026-10-01T00:00:00Z",
     ...overrides,
   };
@@ -80,5 +81,21 @@ describe("TaskItem deadline chip", () => {
 
   it("includes the year for deadlines outside the current year", () => {
     expect(render(task({ deadline: "2027-03-05" }))).toContain("Mar 5, 2027");
+  });
+});
+
+describe("TaskItem project label", () => {
+  it("renders no label without a project", () => {
+    expect(render(task())).not.toContain("tm-task-project");
+  });
+
+  it("shows deadline chip and project label in one meta row after the text", () => {
+    const html = render(task({ deadline: "2026-12-24", project_id: "p1" }));
+    expect(html).toContain("tm-task-meta");
+    const text = html.indexOf("Write report");
+    const deadline = html.indexOf("tm-deadline");
+    const project = html.indexOf("tm-task-project");
+    expect(text).toBeLessThan(deadline);
+    expect(deadline).toBeLessThan(project);
   });
 });

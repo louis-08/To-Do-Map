@@ -6,6 +6,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { Task } from "@/lib/api";
 import { TASK_COLORS } from "./ColorPicker";
 import TaskMenu from "./TaskMenu";
+import ProjectLabel from "./ProjectLabel";
 import { useI18n } from "@/lib/i18n";
 import { deadlineStatus, formatDeadline, todayISO } from "@/lib/deadline";
 
@@ -147,13 +148,18 @@ export default function TaskItem({
       ) : (
         <div className="tm-task-body">
           <span className="tm-task-text">{task.text}</span>
-          {deadlineLabel && (
-            <span
-              className={"tm-deadline is-" + deadlineState}
-              title={`${t.deadline}: ${deadlineLabel}`}
-            >
-              <CalendarIcon />
-              {deadlineLabel}
+          {(deadlineLabel || task.project_id) && (
+            <span className="tm-task-meta">
+              {deadlineLabel && (
+                <span
+                  className={"tm-deadline is-" + deadlineState}
+                  title={`${t.deadline}: ${deadlineLabel}`}
+                >
+                  <CalendarIcon />
+                  {deadlineLabel}
+                </span>
+              )}
+              {task.project_id && <ProjectLabel projectId={task.project_id} />}
             </span>
           )}
         </div>

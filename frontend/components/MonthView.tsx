@@ -12,8 +12,8 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { arrayMove } from "@dnd-kit/sortable";
-import type { Task } from "@/lib/api";
+import type { ReorderUpdate, Task } from "@/lib/api";
+import { dropTargetOf, finishDrop, moveTo } from "@/lib/board";
 import WeekRow from "./WeekRow";
 import TopBar from "./TopBar";
 import SettingsView from "./SettingsView";
@@ -65,6 +65,8 @@ const CURRENT_WEEK_IDX = Math.max(0, ALL_WEEKS.findIndex((w) => w.isCurrent));
 
 type ViewType = "board" | "year" | "settings";
 
+const LANES_STORAGE_KEY = "todomap-project-lanes";
+
 export default function MonthView({
   tasks: initialTasks,
   onAddTask,
@@ -81,8 +83,8 @@ export default function MonthView({
   onExport,
 }: {
   tasks: Task[];
-  onAddTask: (date: string, text: string) => void;
-  onAddWeeklyTask: (mondayISO: string, text: string) => void;
+  onAddTask: (date: string, text: string, projectId?: string | null) => void;
+  onAddWeeklyTask: (mondayISO: string, text: string, projectId?: string | null) => void;
   onAddMonthTask: (monthISO: string, text: string) => void;
   onAddQuarterTask: (quarterISO: string, text: string) => void;
   onAddYearTask: (yearISO: string, text: string) => void;
@@ -91,7 +93,7 @@ export default function MonthView({
   onColorChange: (id: string, color: string | null) => void;
   onEdit: (id: string, text: string) => void;
   onDeadlineChange: (id: string, deadline: string | null) => void;
-  onReorder: (updates: { id: string; date: string; position: number; is_weekly_objective?: boolean; scope?: Task["scope"] }[]) => void;
+  onReorder: (updates: ReorderUpdate[]) => void;
   onExport: () => void;
 }) {
   const { t } = useI18n();
@@ -101,6 +103,20 @@ export default function MonthView({
   const [visibleYear, setVisibleYear] = useState(() => new Date().getFullYear());
   const [yearViewYear, setYearViewYear] = useState(() => new Date().getFullYear());
   const [nowMondayTime, setNowMondayTime] = useState(() => mondayOf(new Date()).getTime());
+
+  // Week view mode: normal (project labels on tasks) or project lanes.
+  // Starts false on both server and client, then restores the stored choice.
+  const [lanes, setLanes] = useState(false);
+  useEffect(() => {
+    try { setLanes(localStorage.getItem(LANES_STORAGE_KEY) === "1"); } catch { /* storage blocked */ }
+  }, []);
+  const toggleLanes = useCallback(() => {
+    setLanes((prev) => {
+      const next = !prev;
+      try { localStorage.setItem(LANES_STORAGE_KEY, next ? "1" : "0"); } catch { /* storage blocked */ }
+      return next;
+    });
+  }, []);
 
   // ALL_WEEKS is built once at module load, so its baked `isCurrent` goes stale
   // when the PWA stays open across a week boundary. Re-derive the current week
@@ -250,7 +266,7 @@ export default function MonthView({
     );
     observer.observe(todayCell);
     return () => observer.disconnect();
-  }, [view, startIdx, endIdx, nowMondayTime]);
+  }, [view, startIdx, endIdx, nowMondayTime, lanes]);
 
   const stats = {
     done: tasks.filter((t) => t.done).length,
@@ -258,52 +274,29 @@ export default function MonthView({
     objectives: tasks.filter((t) => t.is_weekly_objective).length,
   };
 
-  // DnD helpers
-  function resolveTarget(over: { id: string | number }, overTask: Task | undefined) {
-    const overId = over.id as string;
-    const isWeeklyTarget = !overTask && overId.startsWith("week:");
-    const targetDate = overTask ? overTask.date : isWeeklyTarget ? overId.slice(5) : overId;
-    const targetIsWeekly = overTask ? overTask.is_weekly_objective : isWeeklyTarget;
-    return { targetDate, targetIsWeekly };
-  }
-
+  // DnD: the target cell decides date, weekly flag and (in lanes) project.
   function handleDragStart({ active }: DragStartEvent) {
     setActiveId(active.id as string);
   }
 
   function handleDragOver({ active, over }: DragOverEvent) {
     if (!over) return;
-    const activeTask = tasks.find((t) => t.id === active.id);
-    if (!activeTask) return;
     const overTask = tasks.find((t) => t.id === over.id);
-    const { targetDate, targetIsWeekly } = resolveTarget(over, overTask);
-    if (activeTask.date !== targetDate || activeTask.is_weekly_objective !== targetIsWeekly) {
-      setTasks((prev) => prev.map((t) =>
-        t.id === active.id ? { ...t, date: targetDate, is_weekly_objective: targetIsWeekly } : t
-      ));
-    }
+    const target = dropTargetOf(String(over.id), overTask, lanes);
+    if (!target) return;
+    setTasks((prev) => moveTo(prev, String(active.id), target));
   }
 
   function handleDragEnd({ active, over }: DragEndEvent) {
     setActiveId(null);
     if (!over) return;
     const overTask = tasks.find((t) => t.id === over.id);
-    const { targetDate, targetIsWeekly } = resolveTarget(over, overTask);
-
-    setTasks((prev) => {
-      const colTasks = prev
-        .filter((t) => t.date === targetDate && t.is_weekly_objective === targetIsWeekly)
-        .sort((a, b) => a.position - b.position);
-      const activeIdx = colTasks.findIndex((t) => t.id === active.id);
-      const overIdx = overTask ? colTasks.findIndex((t) => t.id === over.id) : colTasks.length - 1;
-      if (activeIdx === -1) return prev;
-      const reordered = arrayMove(colTasks, activeIdx, Math.max(0, overIdx))
-        .map((t, i) => ({ ...t, position: i, date: targetDate, is_weekly_objective: targetIsWeekly }));
-      onReorder(reordered.map((t) => ({ id: t.id, date: t.date, position: t.position, is_weekly_objective: t.is_weekly_objective })));
-      return prev
-        .filter((t) => !(t.date === targetDate && t.is_weekly_objective === targetIsWeekly))
-        .concat(reordered);
-    });
+    const target = dropTargetOf(String(over.id), overTask, lanes);
+    if (!target) return;
+    const result = finishDrop(tasks, String(active.id), overTask?.id ?? null, target);
+    if (!result.updates.length) return;
+    setTasks(result.tasks);
+    onReorder(result.updates);
   }
 
   const rows = useMemo(() => {
@@ -324,6 +317,12 @@ export default function MonthView({
       <TopBar
         visibleYear={visibleYear}
         view={view}
+        lanes={lanes}
+        onToggleLanes={() => {
+          if (view !== "board") setView("board");
+          toggleLanes();
+          requestAnimationFrame(() => scrollToToday(false));
+        }}
         onTodayClick={() => {
           if (view !== "board") { setView("board"); requestAnimationFrame(() => scrollToToday(true)); }
           else scrollToToday(true);
@@ -332,9 +331,10 @@ export default function MonthView({
       />
 
       {view === "board" && (
-        <div className="tm-scroll" ref={scrollerRef} onScroll={onScroll} style={{ flex: "1 1 auto" }}>
-          <DndContext sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+        <div className={"tm-scroll" + (lanes ? " tm-lanes" : "")} ref={scrollerRef} onScroll={onScroll} style={{ flex: "1 1 auto" }}>
+          <DndContext id="board-dnd" sensors={sensors} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
             <div className="tm-colhead">
+              {lanes && <div className="tm-col tm-lane-label tm-lane-corner"><span>{t.project}</span></div>}
               {t.daysFull.map((n, i) => (
                 <div key={n} className={"tm-col" + (i >= 5 ? " is-weekend" : "")}><span>{n}</span></div>
               ))}
@@ -353,6 +353,7 @@ export default function MonthView({
                 <WeekRow
                   week={week}
                   tasks={weekTasksMap.get(toISO(week.monday)) ?? []}
+                  lanes={lanes}
                   onAddTask={onAddTask}
                   onAddWeeklyTask={onAddWeeklyTask}
                   onToggle={onToggle}

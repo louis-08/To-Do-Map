@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useClerk, useUser, useAuth } from "@clerk/nextjs";
 import { api } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
+import ProjectsSettings from "./ProjectsSettings";
 
 function IconBack() {
   return (
@@ -80,6 +81,8 @@ export default function SettingsView({
             <div className="stat"><div className="stat-num">{stats.objectives}</div><div className="stat-lbl">{t.objectivesSet}</div></div>
           </div>
         )}
+
+        <ProjectsSettings />
 
         <section className="tab-card">
           <div className="tab-card-title">{t.account}</div>
