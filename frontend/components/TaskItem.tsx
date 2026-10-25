@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { Task } from "@/lib/api";
-import { TASK_COLORS } from "./ColorPicker";
+import { normalizePriority, priorityCardStyle, type Priority } from "@/lib/priority";
 import TaskMenu from "./TaskMenu";
 import ProjectLabel from "./ProjectLabel";
 import { useI18n } from "@/lib/i18n";
@@ -33,14 +33,14 @@ export default function TaskItem({
   task,
   onToggle,
   onDelete,
-  onColorChange,
+  onPriorityChange,
   onEdit,
   onDeadlineChange,
 }: {
   task: Task;
   onToggle: () => void;
   onDelete: () => void;
-  onColorChange: (color: string | null) => void;
+  onPriorityChange: (priority: Priority) => void;
   onEdit: (text: string) => void;
   onDeadlineChange: (deadline: string | null) => void;
 }) {
@@ -63,10 +63,8 @@ export default function TaskItem({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: task.id });
 
-  const colorEntry = TASK_COLORS.find((c) => c.key === (task.color ?? "none"));
-  const colorStyle = colorEntry?.bg
-    ? { background: colorEntry.bg, borderColor: colorEntry.dot + "70" }
-    : undefined;
+  const priority = normalizePriority(task.priority);
+  const priorityStyle = priorityCardStyle(priority);
 
   const style = { transform: CSS.Transform.toString(transform), transition };
 
@@ -104,13 +102,13 @@ export default function TaskItem({
     "tm-task",
     task.done ? "is-done" : "",
     isDragging ? "is-dragging" : "",
-    colorStyle ? "is-colored" : "",
+    priority !== "none" ? "is-prio-" + priority : "",
   ].filter(Boolean).join(" ");
 
   return (
     <div
       ref={setNodeRef}
-      style={{ ...style, ...colorStyle }}
+      style={{ ...style, ...priorityStyle }}
       className={cls}
       {...attributes}
       {...(editing ? {} : listeners)}
@@ -181,7 +179,7 @@ export default function TaskItem({
       {menuOpen && (
         <TaskMenu
           task={task}
-          onColorChange={onColorChange}
+          onPriorityChange={onPriorityChange}
           onDelete={onDelete}
           onEdit={() => setEditing(true)}
           onDeadlineChange={onDeadlineChange}

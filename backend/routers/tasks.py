@@ -38,6 +38,7 @@ async def create_task(body: TaskCreate, user_id: str = Depends(get_current_user)
             "scope": body.scope,
             "project_id": body.project_id,
             "deadline": str(body.deadline) if body.deadline else None,
+            "priority": body.priority,
         })
         .execute()
     )
@@ -111,6 +112,7 @@ async def delete_task(task_id: str, user_id: str = Depends(get_current_user)):
         "is_weekly_objective": bool(task.data.get("is_weekly_objective")),
         "project_id": task.data.get("project_id"),
         "deadline": task.data.get("deadline"),
+        "priority": task.data.get("priority") or "none",
     }).execute()
     db.table("tasks").delete().eq("id", task_id).eq("user_id", user_id).execute()
     # Keep only latest 30 deleted tasks per user

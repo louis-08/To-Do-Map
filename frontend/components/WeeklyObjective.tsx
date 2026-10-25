@@ -3,6 +3,7 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import type { Task } from "@/lib/api";
+import type { Priority } from "@/lib/priority";
 import TaskItem from "./TaskItem";
 import TaskInput from "./TaskInput";
 import { useI18n } from "@/lib/i18n";
@@ -39,7 +40,7 @@ export default function WeeklyObjective({
   onAdd,
   onToggle,
   onDelete,
-  onColorChange,
+  onPriorityChange,
   onEdit,
   onDeadlineChange,
 }: {
@@ -54,7 +55,7 @@ export default function WeeklyObjective({
   onAdd: (mondayISO: string, text: string) => void;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
-  onColorChange: (id: string, color: string | null) => void;
+  onPriorityChange: (id: string, priority: Priority) => void;
   onEdit: (id: string, text: string) => void;
   onDeadlineChange: (id: string, deadline: string | null) => void;
 }) {
@@ -80,7 +81,7 @@ export default function WeeklyObjective({
               task={task}
               onToggle={() => onToggle(task.id)}
               onDelete={() => onDelete(task.id)}
-              onColorChange={(color) => onColorChange(task.id, color)}
+              onPriorityChange={(priority) => onPriorityChange(task.id, priority)}
               onEdit={(text) => onEdit(task.id, text)}
               onDeadlineChange={(deadline) => onDeadlineChange(task.id, deadline)}
             />

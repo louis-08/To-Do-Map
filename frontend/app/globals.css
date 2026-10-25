@@ -252,13 +252,7 @@ body {
   color: var(--ink); padding: 0; margin: 0; outline: none; width: 0; min-width: 0;
 }
 
-/* ---------- color menu ---------- */
-.tm-color-menu {
-  position: absolute; z-index: 30; top: calc(100% + 5px); left: 0;
-  display: flex; gap: 6px; padding: 7px 8px;
-  background: #fff; border: 1px solid var(--line-strong); border-radius: 11px;
-  box-shadow: 0 8px 22px rgba(16,16,26,.16);
-}
+/* ---------- colour swatches (project colours) ---------- */
 .tm-color-sw {
   width: 19px; height: 19px; border-radius: 50%; border: 2px solid; cursor: pointer; padding: 0;
   display: grid; place-items: center; transition: transform .1s ease;
@@ -323,8 +317,6 @@ body {
 .tm-modal-btn.is-primary { background: var(--accent); border-color: color-mix(in srgb, var(--accent) 70%, #000); }
 .tm-modal-btn.is-primary:hover { background: color-mix(in srgb, var(--accent) 88%, #000); }
 .tm-modal-btn:disabled { opacity: .45; cursor: not-allowed; }
-.tm-modal-colors { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; padding: 4px; }
-.tm-modal-colors .tm-color-sw { width: 28px; height: 28px; }
 
 /* ---------- add task ---------- */
 .tm-add {
@@ -631,3 +623,9 @@ body {
   .tm-proj-main { flex-wrap: wrap; }
   .tm-proj-name { flex-basis: calc(100% - 40px); }
 }
+
+/* ---------- task priority (replaces task colours) ---------- */
+/* Card colours come inline from lib/priority.ts; this is only the picker. */
+.tm-prio-opt.is-sel { background: var(--canvas); border-color: var(--ink); }
+.tm-prio-opt.is-medium.is-sel { background: #fdefce; border-color: #e0a008; }
+.tm-prio-opt.is-high.is-sel { background: #fde7e4; border-color: #e5604d; }

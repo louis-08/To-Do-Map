@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Task } from "@/lib/api";
-import { TASK_COLORS } from "./ColorPicker";
+import { PRIORITIES, PRIORITY_STYLE, normalizePriority, type Priority } from "@/lib/priority";
 import { projectDotColor } from "./ProjectLabel";
 import { useI18n } from "@/lib/i18n";
 import { useProjects } from "@/lib/projects";
@@ -18,14 +18,14 @@ function PencilIcon() {
   );
 }
 
-function ColorIcon({ color }: { color: string | null }) {
-  const entry = TASK_COLORS.find((c) => c.key === color);
-  const dot = entry?.dot ?? "#c2c2c8";
-  const bg = entry?.bg ?? "";
+/** Flag icon, filled with the priority colour (outline only for "none"). */
+function FlagIcon({ priority, size = 20 }: { priority: Priority; size?: number }) {
+  const s = PRIORITY_STYLE[priority];
+  const stroke = s?.dot ?? "#9a9aa2";
   return (
-    <svg viewBox="0 0 16 16" width={20} height={20} aria-hidden="true">
-      <circle cx="8" cy="8" r="5.2" fill={entry ? bg : "none"} stroke={dot} strokeWidth="1.5" />
-      {entry && <circle cx="8" cy="8" r="2.2" fill={dot} />}
+    <svg viewBox="0 0 16 16" width={size} height={size} aria-hidden="true">
+      <path d="M4 14V2.6" fill="none" stroke={stroke} strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M4 3h7.6l-1.8 2.6 1.8 2.6H4z" fill={s ? s.dot : "none"} stroke={stroke} strokeWidth="1.3" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -75,7 +75,7 @@ function CloseIcon() {
   );
 }
 
-type View = "home" | "color" | "deadline" | "project";
+type View = "home" | "priority" | "deadline" | "project";
 
 // The menu is portalled to <body>, but React still bubbles its events up to the
 // task card (dnd-kit drag handlers, double-click-to-edit). Stop them at the overlay
@@ -84,14 +84,14 @@ const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
 export default function TaskMenu({
   task,
-  onColorChange,
+  onPriorityChange,
   onDelete,
   onEdit,
   onDeadlineChange,
   onClose,
 }: {
   task: Task;
-  onColorChange: (color: string | null) => void;
+  onPriorityChange: (priority: Priority) => void;
   onDelete: () => void;
   onEdit: () => void;
   onDeadlineChange: (deadline: string | null) => void;
@@ -105,6 +105,12 @@ export default function TaskMenu({
   const [creating, setCreating] = useState(false);
 
   const current = task.project_id ? byId.get(task.project_id) : undefined;
+  const priority = normalizePriority(task.priority);
+  const priorityLabel: Record<Priority, string> = {
+    none: t.priorityNone,
+    medium: t.priorityMedium,
+    high: t.priorityHigh,
+  };
   const options = assignableProjects(projects, task.project_id);
 
   function pick(projectId: string | null) {
@@ -136,7 +142,7 @@ export default function TaskMenu({
   if (!mounted) return null;
 
   const title =
-    view === "color" ? t.color
+    view === "priority" ? t.priority
     : view === "deadline" ? t.deadline
     : view === "project" ? t.project
     : task.text;
@@ -173,8 +179,9 @@ export default function TaskMenu({
             <button className="tm-modal-opt" onClick={() => { onEdit(); onClose(); }} aria-label={t.editTask}>
               <PencilIcon /><span>{t.edit}</span>
             </button>
-            <button className="tm-modal-opt" onClick={() => setView("color")} aria-label={t.changeColor}>
-              <ColorIcon color={task.color ?? null} /><span>{t.color}</span>
+            <button className="tm-modal-opt" onClick={() => setView("priority")} aria-label={t.changePriority}>
+              <FlagIcon priority={priority} />
+              <span>{priority === "none" ? t.priority : priorityLabel[priority]}</span>
             </button>
             <button className="tm-modal-opt" onClick={() => setView("deadline")} aria-label={t.setDeadline}>
               <CalendarIcon active={!!task.deadline} /><span>{t.deadline}</span>
@@ -260,22 +267,20 @@ export default function TaskMenu({
           </div>
         )}
 
-        {view === "color" && (
-          <div className="tm-modal-body">
-            <div className="tm-modal-colors">
-              {TASK_COLORS.map((c) => {
-                const sel = (task.color ?? "") === c.key;
-                return (
-                  <button
-                    key={c.key}
-                    className={"tm-color-sw" + (sel ? " is-sel" : "")}
-                    style={{ background: c.bg, borderColor: c.dot }}
-                    title={c.key}
-                    onClick={() => { onColorChange(c.key); onClose(); }}
-                  />
-                );
-              })}
-            </div>
+        {view === "priority" && (
+          <div className="tm-modal-body tm-project-pick" role="radiogroup" aria-label={t.priority}>
+            {PRIORITIES.map((p) => (
+              <button
+                key={p}
+                role="radio"
+                aria-checked={priority === p}
+                className={"tm-project-opt tm-prio-opt is-" + p + (priority === p ? " is-sel" : "")}
+                onClick={() => { if (p !== priority) onPriorityChange(p); onClose(); }}
+              >
+                <FlagIcon priority={p} size={16} />
+                <span>{priorityLabel[p]}</span>
+              </button>
+            ))}
           </div>
         )}
       </div>

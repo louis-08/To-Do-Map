@@ -12,6 +12,8 @@ router = APIRouter(tags=["export"])
 def _task_line(task: dict, project_names: dict[str, str] | None = None) -> str:
     check = "x" if task["done"] else " "
     line = f"- [{check}] {task['text']}"
+    if task.get("priority") in ("medium", "high"):
+        line += f" (Priority: {task['priority']})"
     if task.get("deadline"):
         line += f" (Deadline: {task['deadline']})"
     project = (project_names or {}).get(task.get("project_id"))

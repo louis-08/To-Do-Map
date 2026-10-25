@@ -2,10 +2,10 @@
 
 import { useProjects } from "@/lib/projects";
 import { useI18n } from "@/lib/i18n";
-import { TASK_COLORS } from "./ColorPicker";
+import { PROJECT_COLORS } from "@/lib/palette";
 
 export function projectDotColor(color: string | null | undefined): string {
-  return TASK_COLORS.find((c) => c.key === color)?.dot ?? "var(--muted)";
+  return PROJECT_COLORS.find((c) => c.key === color)?.dot ?? "var(--muted)";
 }
 
 /** Small project chip under a task's text (normal week view, year view). */

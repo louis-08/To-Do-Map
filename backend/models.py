@@ -1,6 +1,9 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Literal, Optional
 import datetime
+
+# Task priority. "none" is the default; "medium" is shown yellow, "high" red.
+Priority = Literal["none", "medium", "high"]
 
 
 class TaskCreate(BaseModel):
@@ -12,6 +15,7 @@ class TaskCreate(BaseModel):
     scope: str = "day"
     project_id: Optional[str] = None  # None = "(kein Projekt)"
     deadline: Optional[datetime.date] = None
+    priority: Priority = "none"
 
 
 class TaskUpdate(BaseModel):
@@ -26,6 +30,8 @@ class TaskUpdate(BaseModel):
     project_id: Optional[str] = None
     # Explicit null clears the deadline. Omitted = unchanged.
     deadline: Optional[datetime.date] = None
+    # "none" resets the priority; null/omitted = unchanged.
+    priority: Optional[Priority] = None
 
     def to_patch(self) -> dict:
         """Build the column patch for Supabase.

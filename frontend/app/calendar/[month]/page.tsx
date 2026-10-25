@@ -7,6 +7,7 @@ import { api, type Project, type ReorderUpdate, type Task, type TaskScope } from
 import MonthView from "@/components/MonthView";
 import { useI18n } from "@/lib/i18n";
 import { ProjectsProvider } from "@/lib/projects";
+import type { Priority } from "@/lib/priority";
 
 const FETCH_START = "2026-01-01";
 const FETCH_END   = "2031-12-31";
@@ -70,6 +71,7 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
         text,
         done: false,
         color: null,
+        priority: "none",
         position: (tasksQuery.data?.data ?? []).filter((t) => t.date === date && t.scope === scope && t.is_weekly_objective === isWeekly).length,
         is_weekly_objective: isWeekly,
         scope,
@@ -120,12 +122,12 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
     onSettled: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
   });
 
-  const colorTask = useMutation({
-    mutationFn: ({ id, color }: { id: string; color: string | null }) => a.tasks.update(id, { color }),
-    onMutate: async ({ id, color }) => {
+  const priorityTask = useMutation({
+    mutationFn: ({ id, priority }: { id: string; priority: Priority }) => a.tasks.update(id, { priority }),
+    onMutate: async ({ id, priority }) => {
       await qc.cancelQueries({ queryKey: ["tasks"] });
       const previous = snapshotTasks();
-      patchTasks((prev) => prev.map((t) => t.id === id ? { ...t, color } : t));
+      patchTasks((prev) => prev.map((t) => t.id === id ? { ...t, priority } : t));
       return { previous };
     },
     onError: (_e, _v, ctx) => qc.setQueryData(TASKS_KEY, ctx?.previous),
@@ -233,7 +235,7 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
   const { mutate: toggleMutate } = toggleTask;
   const { mutate: deleteMutate } = deleteTask;
   const { mutate: editMutate } = editTask;
-  const { mutate: colorMutate } = colorTask;
+  const { mutate: priorityMutate } = priorityTask;
   const { mutate: deadlineMutate } = deadlineTask;
   const { mutate: reorderMutate } = reorderTasks;
   const { mutate: assignMutate } = assignTaskProject;
@@ -296,9 +298,9 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
     editMutate({ id, text });
   }, [editMutate]);
 
-  const handleColorChange = useCallback((id: string, color: string | null) => {
-    colorMutate({ id, color });
-  }, [colorMutate]);
+  const handlePriorityChange = useCallback((id: string, priority: Priority) => {
+    priorityMutate({ id, priority });
+  }, [priorityMutate]);
 
   const handleDeadlineChange = useCallback((id: string, deadline: string | null) => {
     deadlineMutate({ id, deadline });
@@ -347,7 +349,7 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
         onAddYearTask={handleAddYearTask}
         onToggle={handleToggle}
         onDelete={handleDelete}
-        onColorChange={handleColorChange}
+        onPriorityChange={handlePriorityChange}
         onEdit={handleEdit}
         onDeadlineChange={handleDeadlineChange}
         onReorder={handleReorder}
