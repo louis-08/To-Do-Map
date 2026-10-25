@@ -86,6 +86,26 @@ const en = {
   nextYear: "Next year",
   // misc
   loading: "Loading…",
+  // projects
+  project: "Project",
+  projects: "Projects",
+  projectsSub: "Group tasks by project. A deleted project stays on the tasks that already have it.",
+  noProject: "No project",
+  noProjectsYet: "No projects yet.",
+  newProjectPlaceholder: "New project…",
+  addProject: "Add",
+  createProject: "Create project",
+  changeProject: "Change project",
+  deletedProject: "deleted",
+  deleteProjectConfirm: "Delete project? Existing tasks keep it.",
+  projectName: "Project name",
+  projectColor: "Project color",
+  moveUp: "Move up",
+  moveDown: "Move down",
+  projectLanes: "Project lanes",
+  projectLanesOn: "Show project lanes",
+  projectLanesOff: "Hide project lanes",
+  unknownProject: "Project",
 };
 
 export type Translations = typeof en;
@@ -161,6 +181,25 @@ const de: Translations = {
   prevYear: "Vorheriges Jahr",
   nextYear: "Nächstes Jahr",
   loading: "Wird geladen…",
+  project: "Projekt",
+  projects: "Projekte",
+  projectsSub: "Gruppiere Aufgaben nach Projekt. Ein gelöschtes Projekt bleibt an den Aufgaben, die es schon haben.",
+  noProject: "Kein Projekt",
+  noProjectsYet: "Noch keine Projekte.",
+  newProjectPlaceholder: "Neues Projekt…",
+  addProject: "Hinzufügen",
+  createProject: "Projekt erstellen",
+  changeProject: "Projekt ändern",
+  deletedProject: "gelöscht",
+  deleteProjectConfirm: "Projekt löschen? Bestehende Aufgaben behalten es.",
+  projectName: "Projektname",
+  projectColor: "Projektfarbe",
+  moveUp: "Nach oben",
+  moveDown: "Nach unten",
+  projectLanes: "Projekt-Ansicht",
+  projectLanesOn: "Projekt-Ansicht einschalten",
+  projectLanesOff: "Projekt-Ansicht ausschalten",
+  unknownProject: "Projekt",
 };
 
 const dictionaries: Record<Lang, Translations> = { en, de };

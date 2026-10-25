@@ -14,6 +14,15 @@ function IconUser() {
   );
 }
 
+function IconLanes() {
+  return (
+    <svg viewBox="0 0 20 20" width={18} height={18} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+      <rect x="2.5" y="3" width="15" height="14" rx="2.5" />
+      <path d="M2.5 7.7h15M2.5 12.3h15M6.5 3v14" />
+    </svg>
+  );
+}
+
 function IconGear() {
   return (
     <svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -26,11 +35,15 @@ function IconGear() {
 export default function TopBar({
   visibleYear,
   view,
+  lanes,
+  onToggleLanes,
   onTodayClick,
   onViewChange,
 }: {
   visibleYear: number;
   view: View;
+  lanes: boolean;
+  onToggleLanes: () => void;
   onTodayClick: () => void;
   onViewChange: (v: View) => void;
 }) {
@@ -63,6 +76,15 @@ export default function TopBar({
       </div>
 
       <div className="tm-navbtns">
+        <button
+          className={"tm-iconbtn tm-iconbtn-square" + (lanes && view === "board" ? " active" : "")}
+          onClick={onToggleLanes}
+          title={lanes ? t.projectLanesOff : t.projectLanesOn}
+          aria-label={t.projectLanes}
+          aria-pressed={lanes}
+        >
+          <IconLanes />
+        </button>
         <button
           className={"tm-iconbtn tm-iconbtn-square" + (view === "settings" ? " active" : "")}
           onClick={() => onViewChange(view === "settings" ? "board" : "settings")}

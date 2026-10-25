@@ -18,10 +18,23 @@ function toISO(d: Date) {
 
 type DayState = "past" | "today" | "future";
 
+export function DayHead({ date, dayIndex, state }: { date: Date; dayIndex: number; state: DayState }) {
+  const { t } = useI18n();
+  return (
+    <div className="tm-cell-head">
+      <span className="tm-wd">{t.daysShort[dayIndex]}</span>
+      <span className="tm-date">{dmKey(date)}</span>
+      {state === "today" && <span className="tm-today-pill">{t.todayPill}</span>}
+    </div>
+  );
+}
+
 export default function DayColumn({
   date,
   dayIndex,
   state,
+  droppableId,
+  showHead = true,
   tasks,
   onAdd,
   onToggle,
@@ -33,6 +46,9 @@ export default function DayColumn({
   date: Date;
   dayIndex: number;
   state: DayState;
+  droppableId: string;
+  /** false inside project lanes: the day header lives in the week's head row. */
+  showHead?: boolean;
   tasks: Task[];
   onAdd: (date: string, text: string) => void;
   onToggle: (id: string) => void;
@@ -41,9 +57,8 @@ export default function DayColumn({
   onEdit: (id: string, text: string) => void;
   todayRef?: RefObject<HTMLDivElement | null>;
 }) {
-  const { t } = useI18n();
   const isoDate = toISO(date);
-  const { setNodeRef, isOver } = useDroppable({ id: isoDate });
+  const { setNodeRef, isOver } = useDroppable({ id: droppableId });
   const setCellRef = useCallback((node: HTMLDivElement | null) => {
     setNodeRef(node);
     if (todayRef) todayRef.current = node;
@@ -54,15 +69,12 @@ export default function DayColumn({
     "state-" + state,
     isOver ? "is-over" : "",
     dayIndex >= 5 ? "is-weekend" : "",
+    showHead ? "" : "is-lane",
   ].filter(Boolean).join(" ");
 
   return (
     <div ref={setCellRef} className={cls}>
-      <div className="tm-cell-head">
-        <span className="tm-wd">{t.daysShort[dayIndex]}</span>
-        <span className="tm-date">{dmKey(date)}</span>
-        {state === "today" && <span className="tm-today-pill">{t.todayPill}</span>}
-      </div>
+      {showHead && <DayHead date={date} dayIndex={dayIndex} state={state} />}
 
       <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
         <div className="tm-tasks">

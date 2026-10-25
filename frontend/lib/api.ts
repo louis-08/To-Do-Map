@@ -34,7 +34,30 @@ export type Task = {
   position: number;
   is_weekly_objective: boolean;
   scope: TaskScope;
+  // null = "(kein Projekt)". May reference a soft-deleted project.
+  project_id: string | null;
   created_at: string;
+};
+
+export type Project = {
+  id: string;
+  user_id: string;
+  name: string;
+  color: string | null;
+  position: number;
+  // Soft delete: hidden from pickers/settings, but tasks keep it.
+  deleted_at: string | null;
+  created_at: string;
+};
+
+export type ReorderUpdate = {
+  id: string;
+  date: string;
+  position: number;
+  is_weekly_objective?: boolean;
+  scope?: TaskScope;
+  // Omitted = unchanged, null = "(kein Projekt)".
+  project_id?: string | null;
 };
 
 export type WeeklyObjective = {
@@ -63,18 +86,35 @@ export function api(getToken: () => Promise<string | null>) {
       list: (start: string, end: string) =>
         req<{ data: Task[] }>(`/tasks?start=${start}&end=${end}`, { method: "GET" }, getToken),
 
-      create: (body: { date: string; text: string; color: string | null; position: number; is_weekly_objective: boolean; scope?: TaskScope }) =>
+      create: (body: { date: string; text: string; color: string | null; position: number; is_weekly_objective: boolean; scope?: TaskScope; project_id?: string | null }) =>
         req<{ data: Task }>("/tasks", { method: "POST", body: JSON.stringify(body) }, getToken),
 
-      update: (id: string, body: Partial<Pick<Task, "text" | "done" | "color" | "position" | "date">>) =>
+      update: (id: string, body: Partial<Pick<Task, "text" | "done" | "color" | "position" | "date" | "project_id">>) =>
         req<{ data: Task }>(`/tasks/${id}`, { method: "PATCH", body: JSON.stringify(body) }, getToken),
 
       delete: (id: string) =>
         req<{ data: string }>(`/tasks/${id}`, { method: "DELETE" }, getToken),
 
-      reorder: (updates: { id: string; date: string; position: number; is_weekly_objective?: boolean; scope?: TaskScope }[]) =>
+      reorder: (updates: ReorderUpdate[]) =>
         req<{ data: string }>("/tasks/reorder", { method: "PATCH", body: JSON.stringify({ updates }) }, getToken),
 
+    },
+
+    projects: {
+      list: () =>
+        req<{ data: Project[] }>("/projects", { method: "GET" }, getToken),
+
+      create: (body: { name: string; color: string | null }) =>
+        req<{ data: Project }>("/projects", { method: "POST", body: JSON.stringify(body) }, getToken),
+
+      update: (id: string, body: { name?: string; color?: string | null }) =>
+        req<{ data: Project }>(`/projects/${id}`, { method: "PATCH", body: JSON.stringify(body) }, getToken),
+
+      order: (ids: string[]) =>
+        req<{ data: string }>("/projects/order", { method: "PUT", body: JSON.stringify({ ids }) }, getToken),
+
+      delete: (id: string) =>
+        req<{ data: Project }>(`/projects/${id}`, { method: "DELETE" }, getToken),
     },
 
     objectives: {

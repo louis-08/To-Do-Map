@@ -52,6 +52,9 @@ async def restore_task(task_id: str, user_id: str = Depends(get_current_user)):
         "color": task["color"],
         "done": False,
         "position": next_pos,
+        "scope": task.get("scope") or "day",
+        "is_weekly_objective": bool(task.get("is_weekly_objective")),
+        "project_id": task.get("project_id"),
     }).execute()
     db.table("deleted_tasks").delete().eq("id", task_id).execute()
     return {"data": "ok"}

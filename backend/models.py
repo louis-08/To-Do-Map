@@ -10,6 +10,7 @@ class TaskCreate(BaseModel):
     position: int
     is_weekly_objective: bool = False
     scope: str = "day"
+    project_id: Optional[str] = None  # None = "(kein Projekt)"
 
 
 class TaskUpdate(BaseModel):
@@ -20,6 +21,14 @@ class TaskUpdate(BaseModel):
     date: Optional[datetime.date] = None
     is_weekly_objective: Optional[bool] = None
     scope: Optional[str] = None
+    # Explicit null clears the project. Omitted = unchanged.
+    project_id: Optional[str] = None
+
+
+# Fields where an explicitly sent null is meaningful (clear the value).
+# For all other TaskUpdate fields null keeps the legacy meaning "unchanged",
+# so existing clients (e.g. the MCP server) that send nulls are unaffected.
+NULLABLE_TASK_FIELDS = {"project_id"}
 
 
 class ReorderItem(BaseModel):
@@ -28,6 +37,8 @@ class ReorderItem(BaseModel):
     position: int
     is_weekly_objective: Optional[bool] = None
     scope: Optional[str] = None
+    # Explicit null moves the task to "(kein Projekt)". Omitted = unchanged.
+    project_id: Optional[str] = None
 
 
 class ReorderRequest(BaseModel):
@@ -40,3 +51,18 @@ class ObjectiveUpsert(BaseModel):
 
 class SettingsUpdate(BaseModel):
     auto_rollover: bool
+
+
+class ProjectCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+    color: Optional[str] = Field(default=None, max_length=50)
+
+
+class ProjectUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=60)
+    # Explicit null removes the color. Omitted = unchanged.
+    color: Optional[str] = Field(default=None, max_length=50)
+
+
+class ProjectOrder(BaseModel):
+    ids: list[str]

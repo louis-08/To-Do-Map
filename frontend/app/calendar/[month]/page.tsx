@@ -3,15 +3,19 @@
 import { use, useCallback, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, type Task, type TaskScope } from "@/lib/api";
+import { api, type Project, type ReorderUpdate, type Task, type TaskScope } from "@/lib/api";
 import MonthView from "@/components/MonthView";
 import { useI18n } from "@/lib/i18n";
+import { ProjectsProvider } from "@/lib/projects";
 
 const FETCH_START = "2026-01-01";
 const FETCH_END   = "2031-12-31";
 const TASKS_KEY   = ["tasks", FETCH_START, FETCH_END];
+const PROJECTS_KEY = ["projects"];
 
 type TaskCache = { data: Task[] } | undefined;
+type ProjectCache = { data: Project[] } | undefined;
+const EMPTY_PROJECTS: Project[] = [];
 
 export default function CalendarPage({ params }: { params: Promise<{ month: string }> }) {
   use(params);
@@ -24,6 +28,12 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
     queryKey: TASKS_KEY,
     queryFn: () => a.tasks.list(FETCH_START, FETCH_END),
     staleTime: 30_000,
+  });
+
+  const projectsQuery = useQuery({
+    queryKey: PROJECTS_KEY,
+    queryFn: () => a.projects.list(),
+    staleTime: 60_000,
   });
 
   useEffect(() => {
@@ -40,14 +50,17 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
   function patchTasks(updater: (prev: Task[]) => Task[]) {
     qc.setQueryData<TaskCache>(TASKS_KEY, (old) => ({ data: updater(old?.data ?? []) }));
   }
+  function patchProjects(updater: (prev: Project[]) => Project[]) {
+    qc.setQueryData<ProjectCache>(PROJECTS_KEY, (old) => ({ data: updater(old?.data ?? []) }));
+  }
 
   const addTask = useMutation({
-    mutationFn: ({ date, text, isWeekly, scope }: { date: string; text: string; isWeekly: boolean; scope: TaskScope }) => {
+    mutationFn: ({ date, text, isWeekly, scope, projectId }: { date: string; text: string; isWeekly: boolean; scope: TaskScope; projectId: string | null }) => {
       const pos = (tasksQuery.data?.data ?? [])
         .filter((t) => t.date === date && t.scope === scope && t.is_weekly_objective === isWeekly).length;
-      return a.tasks.create({ date, text, color: null, position: pos, is_weekly_objective: isWeekly, scope });
+      return a.tasks.create({ date, text, color: null, position: pos, is_weekly_objective: isWeekly, scope, project_id: projectId });
     },
-    onMutate: async ({ date, text, isWeekly, scope }) => {
+    onMutate: async ({ date, text, isWeekly, scope, projectId }) => {
       await qc.cancelQueries({ queryKey: ["tasks"] });
       const previous = snapshotTasks();
       const optimistic: Task = {
@@ -60,6 +73,7 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
         position: (tasksQuery.data?.data ?? []).filter((t) => t.date === date && t.scope === scope && t.is_weekly_objective === isWeekly).length,
         is_weekly_objective: isWeekly,
         scope,
+        project_id: projectId,
         created_at: new Date().toISOString(),
       };
       patchTasks((prev) => [...prev, optimistic]);
@@ -117,8 +131,65 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
     onSettled: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
   });
 
+  const assignTaskProject = useMutation({
+    mutationFn: ({ id, projectId }: { id: string; projectId: string | null }) => a.tasks.update(id, { project_id: projectId }),
+    onMutate: async ({ id, projectId }) => {
+      await qc.cancelQueries({ queryKey: ["tasks"] });
+      const previous = snapshotTasks();
+      patchTasks((prev) => prev.map((t) => t.id === id ? { ...t, project_id: projectId } : t));
+      return { previous };
+    },
+    onError: (_e, _v, ctx) => qc.setQueryData(TASKS_KEY, ctx?.previous),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+
+  // ---- projects ----------------------------------------------------------
+  const createProjectM = useMutation({
+    mutationFn: (body: { name: string; color: string | null }) => a.projects.create(body),
+    onSuccess: (res) => patchProjects((prev) => [...prev, res.data]),
+    onSettled: () => qc.invalidateQueries({ queryKey: PROJECTS_KEY }),
+  });
+
+  const updateProjectM = useMutation({
+    mutationFn: ({ id, body }: { id: string; body: { name?: string; color?: string | null } }) => a.projects.update(id, body),
+    onMutate: async ({ id, body }) => {
+      await qc.cancelQueries({ queryKey: PROJECTS_KEY });
+      const previous = qc.getQueryData<ProjectCache>(PROJECTS_KEY);
+      patchProjects((prev) => prev.map((p) => p.id === id ? { ...p, ...body } : p));
+      return { previous };
+    },
+    onError: (_e, _v, ctx) => qc.setQueryData(PROJECTS_KEY, ctx?.previous),
+    onSettled: () => qc.invalidateQueries({ queryKey: PROJECTS_KEY }),
+  });
+
+  const deleteProjectM = useMutation({
+    mutationFn: (id: string) => a.projects.delete(id),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: PROJECTS_KEY });
+      const previous = qc.getQueryData<ProjectCache>(PROJECTS_KEY);
+      // Soft delete: keep the row so existing tasks keep their label.
+      patchProjects((prev) => prev.map((p) => p.id === id ? { ...p, deleted_at: new Date().toISOString() } : p));
+      return { previous };
+    },
+    onError: (_e, _v, ctx) => qc.setQueryData(PROJECTS_KEY, ctx?.previous),
+    onSettled: () => qc.invalidateQueries({ queryKey: PROJECTS_KEY }),
+  });
+
+  const orderProjectsM = useMutation({
+    mutationFn: (ids: string[]) => a.projects.order(ids),
+    onMutate: async (ids) => {
+      await qc.cancelQueries({ queryKey: PROJECTS_KEY });
+      const previous = qc.getQueryData<ProjectCache>(PROJECTS_KEY);
+      const pos = new Map(ids.map((id, i) => [id, i]));
+      patchProjects((prev) => prev.map((p) => pos.has(p.id) ? { ...p, position: pos.get(p.id)! } : p));
+      return { previous };
+    },
+    onError: (_e, _v, ctx) => qc.setQueryData(PROJECTS_KEY, ctx?.previous),
+    onSettled: () => qc.invalidateQueries({ queryKey: PROJECTS_KEY }),
+  });
+
   const reorderTasks = useMutation({
-    mutationFn: (updates: { id: string; date: string; position: number; is_weekly_objective?: boolean; scope?: TaskScope }[]) =>
+    mutationFn: (updates: ReorderUpdate[]) =>
       a.tasks.reorder(updates),
     onMutate: async (updates) => {
       await qc.cancelQueries({ queryKey: ["tasks"] });
@@ -133,6 +204,7 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
               position: u.position,
               is_weekly_objective: u.is_weekly_objective ?? t.is_weekly_objective,
               scope: u.scope ?? t.scope,
+              project_id: u.project_id !== undefined ? u.project_id : t.project_id,
             }
           : t;
       }));
@@ -150,26 +222,52 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
   const { mutate: editMutate } = editTask;
   const { mutate: colorMutate } = colorTask;
   const { mutate: reorderMutate } = reorderTasks;
+  const { mutate: assignMutate } = assignTaskProject;
+  const { mutateAsync: createProjectAsync } = createProjectM;
+  const { mutate: updateProjectMutate } = updateProjectM;
+  const { mutate: deleteProjectMutate } = deleteProjectM;
+  const { mutate: orderProjectsMutate } = orderProjectsM;
 
-  const handleAddTask = useCallback((date: string, text: string) => {
-    addMutate({ date, text, isWeekly: false, scope: "day" });
+  const handleAddTask = useCallback((date: string, text: string, projectId: string | null = null) => {
+    addMutate({ date, text, isWeekly: false, scope: "day", projectId });
   }, [addMutate]);
 
-  const handleAddWeeklyTask = useCallback((mondayISO: string, text: string) => {
-    addMutate({ date: mondayISO, text, isWeekly: true, scope: "day" });
+  const handleAddWeeklyTask = useCallback((mondayISO: string, text: string, projectId: string | null = null) => {
+    addMutate({ date: mondayISO, text, isWeekly: true, scope: "day", projectId });
   }, [addMutate]);
 
   const handleAddMonthTask = useCallback((monthISO: string, text: string) => {
-    addMutate({ date: monthISO, text, isWeekly: false, scope: "month" });
+    addMutate({ date: monthISO, text, isWeekly: false, scope: "month", projectId: null });
   }, [addMutate]);
 
   const handleAddQuarterTask = useCallback((quarterISO: string, text: string) => {
-    addMutate({ date: quarterISO, text, isWeekly: false, scope: "quarter" });
+    addMutate({ date: quarterISO, text, isWeekly: false, scope: "quarter", projectId: null });
   }, [addMutate]);
 
   const handleAddYearTask = useCallback((yearISO: string, text: string) => {
-    addMutate({ date: yearISO, text, isWeekly: false, scope: "year" });
+    addMutate({ date: yearISO, text, isWeekly: false, scope: "year", projectId: null });
   }, [addMutate]);
+
+  const assignProject = useCallback((id: string, projectId: string | null) => {
+    assignMutate({ id, projectId });
+  }, [assignMutate]);
+
+  const createProject = useCallback(async (name: string, color: string | null) => {
+    const res = await createProjectAsync({ name, color });
+    return res.data;
+  }, [createProjectAsync]);
+
+  const updateProject = useCallback((id: string, body: { name?: string; color?: string | null }) => {
+    updateProjectMutate({ id, body });
+  }, [updateProjectMutate]);
+
+  const deleteProject = useCallback((id: string) => {
+    deleteProjectMutate(id);
+  }, [deleteProjectMutate]);
+
+  const orderProjects = useCallback((ids: string[]) => {
+    orderProjectsMutate(ids);
+  }, [orderProjectsMutate]);
 
   const handleToggle = useCallback((id: string) => {
     const task = tasks.find((t) => t.id === id);
@@ -188,7 +286,7 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
     colorMutate({ id, color });
   }, [colorMutate]);
 
-  const handleReorder = useCallback((updates: { id: string; date: string; position: number; is_weekly_objective?: boolean; scope?: TaskScope }[]) => {
+  const handleReorder = useCallback((updates: ReorderUpdate[]) => {
     reorderMutate(updates);
   }, [reorderMutate]);
 
@@ -211,20 +309,31 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
     );
   }
 
+  const projects = projectsQuery.data?.data ?? EMPTY_PROJECTS;
+
   return (
-    <MonthView
-      tasks={tasks}
-      onAddTask={handleAddTask}
-      onAddWeeklyTask={handleAddWeeklyTask}
-      onAddMonthTask={handleAddMonthTask}
-      onAddQuarterTask={handleAddQuarterTask}
-      onAddYearTask={handleAddYearTask}
-      onToggle={handleToggle}
-      onDelete={handleDelete}
-      onColorChange={handleColorChange}
-      onEdit={handleEdit}
-      onReorder={handleReorder}
-      onExport={handleExport}
-    />
+    <ProjectsProvider
+      projects={projects}
+      assignProject={assignProject}
+      createProject={createProject}
+      updateProject={updateProject}
+      deleteProject={deleteProject}
+      orderProjects={orderProjects}
+    >
+      <MonthView
+        tasks={tasks}
+        onAddTask={handleAddTask}
+        onAddWeeklyTask={handleAddWeeklyTask}
+        onAddMonthTask={handleAddMonthTask}
+        onAddQuarterTask={handleAddQuarterTask}
+        onAddYearTask={handleAddYearTask}
+        onToggle={handleToggle}
+        onDelete={handleDelete}
+        onColorChange={handleColorChange}
+        onEdit={handleEdit}
+        onReorder={handleReorder}
+        onExport={handleExport}
+      />
+    </ProjectsProvider>
   );
 }

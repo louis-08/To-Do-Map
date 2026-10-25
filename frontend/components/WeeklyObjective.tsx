@@ -18,10 +18,22 @@ function monthSpanLabel(monday: Date, sunday: Date, monthsShort: string[]): stri
   return a + "–" + b + " " + sunday.getFullYear();
 }
 
+export function WeeklyObjectiveHead({ weekNum, monday, sunday }: { weekNum: number; monday: Date; sunday: Date }) {
+  const { t } = useI18n();
+  return (
+    <div className="tm-obj-head">
+      <span className="tm-weeknum">{t.weekAbbr}{weekNum}</span>
+      <span className="tm-monthspan">{monthSpanLabel(monday, sunday, t.monthsShort)}</span>
+    </div>
+  );
+}
+
 export default function WeeklyObjective({
   weekNum,
   monday,
   sunday,
+  droppableId,
+  showHead = true,
   tasks,
   isCurrent,
   onAdd,
@@ -33,6 +45,9 @@ export default function WeeklyObjective({
   weekNum: number;
   monday: Date;
   sunday: Date;
+  droppableId: string;
+  /** false inside project lanes: the KW header lives in the week's head row. */
+  showHead?: boolean;
   tasks: Task[];
   isCurrent: boolean;
   onAdd: (mondayISO: string, text: string) => void;
@@ -41,23 +56,20 @@ export default function WeeklyObjective({
   onColorChange: (id: string, color: string | null) => void;
   onEdit: (id: string, text: string) => void;
 }) {
-  const { t } = useI18n();
   const mondayISO = toISO(monday);
-  const { setNodeRef, isOver } = useDroppable({ id: "week:" + mondayISO });
+  const { setNodeRef, isOver } = useDroppable({ id: droppableId });
 
   const cls = [
     "tm-cell",
     "tm-obj",
     isCurrent ? "is-current" : "",
     isOver ? "is-over" : "",
+    showHead ? "" : "is-lane",
   ].filter(Boolean).join(" ");
 
   return (
     <div ref={setNodeRef} className={cls}>
-      <div className="tm-obj-head">
-        <span className="tm-weeknum">{t.weekAbbr}{weekNum}</span>
-        <span className="tm-monthspan">{monthSpanLabel(monday, sunday, t.monthsShort)}</span>
-      </div>
+      {showHead && <WeeklyObjectiveHead weekNum={weekNum} monday={monday} sunday={sunday} />}
       <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
         <div className="tm-tasks">
           {tasks.map((task) => (
