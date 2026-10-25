@@ -7,6 +7,7 @@ import { api, type Project, type ReorderUpdate, type Task, type TaskScope } from
 import MonthView from "@/components/MonthView";
 import { useI18n } from "@/lib/i18n";
 import { ProjectsProvider } from "@/lib/projects";
+import { DescriptionProvider } from "@/lib/description";
 import type { Priority } from "@/lib/priority";
 
 const FETCH_START = "2026-01-01";
@@ -72,6 +73,7 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
         done: false,
         color: null,
         priority: "none",
+        description: "",
         position: (tasksQuery.data?.data ?? []).filter((t) => t.date === date && t.scope === scope && t.is_weekly_objective === isWeekly).length,
         is_weekly_objective: isWeekly,
         scope,
@@ -128,6 +130,18 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
       await qc.cancelQueries({ queryKey: ["tasks"] });
       const previous = snapshotTasks();
       patchTasks((prev) => prev.map((t) => t.id === id ? { ...t, priority } : t));
+      return { previous };
+    },
+    onError: (_e, _v, ctx) => qc.setQueryData(TASKS_KEY, ctx?.previous),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+
+  const descriptionTask = useMutation({
+    mutationFn: ({ id, description }: { id: string; description: string }) => a.tasks.update(id, { description }),
+    onMutate: async ({ id, description }) => {
+      await qc.cancelQueries({ queryKey: ["tasks"] });
+      const previous = snapshotTasks();
+      patchTasks((prev) => prev.map((t) => t.id === id ? { ...t, description } : t));
       return { previous };
     },
     onError: (_e, _v, ctx) => qc.setQueryData(TASKS_KEY, ctx?.previous),
@@ -237,6 +251,7 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
   const { mutate: editMutate } = editTask;
   const { mutate: priorityMutate } = priorityTask;
   const { mutate: deadlineMutate } = deadlineTask;
+  const { mutate: descriptionMutate } = descriptionTask;
   const { mutate: reorderMutate } = reorderTasks;
   const { mutate: assignMutate } = assignTaskProject;
   const { mutateAsync: createProjectAsync } = createProjectM;
@@ -306,6 +321,10 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
     deadlineMutate({ id, deadline });
   }, [deadlineMutate]);
 
+  const setDescription = useCallback((id: string, description: string) => {
+    descriptionMutate({ id, description });
+  }, [descriptionMutate]);
+
   const handleReorder = useCallback((updates: ReorderUpdate[]) => {
     reorderMutate(updates);
   }, [reorderMutate]);
@@ -340,6 +359,7 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
       deleteProject={deleteProject}
       orderProjects={orderProjects}
     >
+      <DescriptionProvider setDescription={setDescription}>
       <MonthView
         tasks={tasks}
         onAddTask={handleAddTask}
@@ -355,6 +375,7 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
         onReorder={handleReorder}
         onExport={handleExport}
       />
+      </DescriptionProvider>
     </ProjectsProvider>
   );
 }

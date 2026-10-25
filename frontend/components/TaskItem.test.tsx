@@ -17,6 +17,7 @@ function task(overrides: Partial<Task> = {}): Task {
     done: false,
     color: null,
     priority: "none",
+    description: "",
     position: 0,
     is_weekly_objective: false,
     scope: "day",
@@ -121,5 +122,48 @@ describe("TaskItem priority", () => {
     const html = render(task({ color: "red" }));
     expect(html).not.toContain("is-prio-");
     expect(html).not.toContain("background:#fde7e4");
+  });
+});
+
+describe("TaskItem description icon", () => {
+  it("shows no icon without a description", () => {
+    expect(render(task())).not.toContain("tm-task-note");
+  });
+
+  it("shows no icon for a whitespace-only description", () => {
+    expect(render(task({ description: " \n " }))).not.toContain("tm-task-note");
+  });
+
+  it("shows an accessible icon button inside the text when a description exists", () => {
+    const html = render(task({ description: "Call Anna about the budget" }));
+    expect(html).toContain("tm-task-note");
+    expect(html).toContain('title="Call Anna about the budget"');
+    expect(html).toContain("Has a description");
+    expect(html.indexOf("report")).toBeLessThan(html.indexOf("tm-task-note"));
+  });
+
+  it("keeps the full task text and glues the icon to its last word", () => {
+    const html = render(task({ text: "Write the quarterly report", description: "x" }));
+    expect(html).toContain('Write the quarterly <span class="tm-nowrap">report<button');
+  });
+
+  it("glues the icon only to the last 3 characters of a very long last word", () => {
+    const html = render(task({ text: "Steuer vorbereiten", description: "x" }));
+    expect(html).toContain('Steuer vorberei<span class="tm-nowrap">ten<button');
+  });
+
+  it("works for single-word tasks", () => {
+    const html = render(task({ text: "Sport", description: "x" }));
+    expect(html).toContain('<span class="tm-nowrap">Sport<button');
+  });
+
+  it("does not add a meta row (card height stays the same)", () => {
+    expect(render(task({ description: "x" }))).not.toContain("tm-task-meta");
+  });
+
+  it("truncates the tooltip of long descriptions", () => {
+    const html = render(task({ description: "y".repeat(600) }));
+    expect(html).toContain("y".repeat(280) + "…");
+    expect(html).not.toContain("y".repeat(281));
   });
 });
