@@ -34,6 +34,7 @@ async def create_task(body: TaskCreate, user_id: str = Depends(get_current_user)
             "position": body.position,
             "is_weekly_objective": body.is_weekly_objective,
             "scope": body.scope,
+            "deadline": str(body.deadline) if body.deadline else None,
         })
         .execute()
     )
@@ -58,9 +59,7 @@ async def update_task(
     task_id: str, body: TaskUpdate, user_id: str = Depends(get_current_user)
 ):
     db = get_db()
-    patch = {k: v for k, v in body.model_dump().items() if v is not None}
-    if "date" in patch:
-        patch["date"] = str(patch["date"])
+    patch = body.to_patch()
     result = (
         db.table("tasks")
         .update(patch)
@@ -90,6 +89,7 @@ async def delete_task(task_id: str, user_id: str = Depends(get_current_user)):
         "date": task.data["date"],
         "text": task.data["text"],
         "color": task.data["color"],
+        "deadline": task.data.get("deadline"),
     }).execute()
     db.table("tasks").delete().eq("id", task_id).eq("user_id", user_id).execute()
     # Keep only latest 30 deleted tasks per user

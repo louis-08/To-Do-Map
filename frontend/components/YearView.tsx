@@ -43,6 +43,7 @@ export default function YearView({
   onDelete,
   onColorChange,
   onEdit,
+  onDeadlineChange,
   onReorder,
 }: {
   year: number;
@@ -56,6 +57,7 @@ export default function YearView({
   onDelete: (id: string) => void;
   onColorChange: (id: string, color: string | null) => void;
   onEdit: (id: string, text: string) => void;
+  onDeadlineChange: (id: string, deadline: string | null) => void;
   onReorder: (updates: { id: string; date: string; position: number; is_weekly_objective?: boolean; scope?: Task["scope"] }[]) => void;
 }) {
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -160,6 +162,7 @@ export default function YearView({
                       onDelete={onDelete}
                       onColorChange={onColorChange}
                       onEdit={onEdit}
+                      onDeadlineChange={onDeadlineChange}
                     />
                   );
                 })}
@@ -174,6 +177,7 @@ export default function YearView({
                   onDelete={onDelete}
                   onColorChange={onColorChange}
                   onEdit={onEdit}
+                  onDeadlineChange={onDeadlineChange}
                 />
               </div>
             ))}
@@ -191,6 +195,7 @@ export default function YearView({
               onDelete={onDelete}
               onColorChange={onColorChange}
               onEdit={onEdit}
+              onDeadlineChange={onDeadlineChange}
             />
           </div>
         </div>

@@ -9,6 +9,14 @@ from database import get_db
 router = APIRouter(tags=["export"])
 
 
+def _task_line(task: dict) -> str:
+    check = "x" if task["done"] else " "
+    line = f"- [{check}] {task['text']}"
+    if task.get("deadline"):
+        line += f" (Deadline: {task['deadline']})"
+    return line
+
+
 def _build_markdown(user_id: str) -> str:
     db = get_db()
     today = date.today()
@@ -62,8 +70,7 @@ def _build_markdown(user_id: str) -> str:
 
         day_label = d.strftime("%A %d.%m")
         lines.append(f"\n**{day_label}**")
-        check = "x" if task["done"] else " "
-        lines.append(f"- [{check}] {task['text']}")
+        lines.append(_task_line(task))
 
     month_tasks = [t for t in tasks if t.get("scope") == "month"]
     if month_tasks:
@@ -74,8 +81,7 @@ def _build_markdown(user_id: str) -> str:
             if (d.year, d.month) != cur:
                 cur = (d.year, d.month)
                 lines.append(f"\n### {d.strftime('%B %Y')}")
-            check = "x" if t["done"] else " "
-            lines.append(f"- [{check}] {t['text']}")
+            lines.append(_task_line(t))
 
     quarter_tasks = [t for t in tasks if t.get("scope") == "quarter"]
     if quarter_tasks:
@@ -87,8 +93,7 @@ def _build_markdown(user_id: str) -> str:
             if (d.year, q) != cur:
                 cur = (d.year, q)
                 lines.append(f"\n### Q{q} {d.year}")
-            check = "x" if t["done"] else " "
-            lines.append(f"- [{check}] {t['text']}")
+            lines.append(_task_line(t))
 
     year_tasks = [t for t in tasks if t.get("scope") == "year"]
     if year_tasks:
@@ -99,8 +104,7 @@ def _build_markdown(user_id: str) -> str:
             if d.year != cur:
                 cur = d.year
                 lines.append(f"\n### {d.year}")
-            check = "x" if t["done"] else " "
-            lines.append(f"- [{check}] {t['text']}")
+            lines.append(_task_line(t))
 
     return "\n".join(lines)
 

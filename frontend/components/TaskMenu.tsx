@@ -37,6 +37,16 @@ function TrashIcon() {
   );
 }
 
+function CalendarIcon({ active }: { active: boolean }) {
+  return (
+    <svg viewBox="0 0 16 16" width={20} height={20} aria-hidden="true">
+      <rect x="2.2" y="3.4" width="11.6" height="10.2" rx="1.8" fill="none" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M2.2 6.8h11.6M5.4 2v2.6M10.6 2v2.6" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      {active && <circle cx="8" cy="10.2" r="1.5" fill="currentColor" />}
+    </svg>
+  );
+}
+
 function BackIcon() {
   return (
     <svg viewBox="0 0 16 16" width={16} height={16} aria-hidden="true">
@@ -53,24 +63,31 @@ function CloseIcon() {
   );
 }
 
-type View = "home" | "color";
+type View = "home" | "color" | "deadline";
+
+// The menu is portalled to <body>, but React still bubbles its events up to the
+// task card (dnd-kit drag handlers, double-click-to-edit). Stop them at the overlay.
+const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
 export default function TaskMenu({
   task,
   onColorChange,
   onDelete,
   onEdit,
+  onDeadlineChange,
   onClose,
 }: {
   task: Task;
   onColorChange: (color: string | null) => void;
   onDelete: () => void;
   onEdit: () => void;
+  onDeadlineChange: (deadline: string | null) => void;
   onClose: () => void;
 }) {
   const { t } = useI18n();
   const [view, setView] = useState<View>("home");
   const [mounted, setMounted] = useState(false);
+  const [draft, setDraft] = useState(task.deadline ?? "");
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -82,10 +99,18 @@ export default function TaskMenu({
 
   if (!mounted) return null;
 
-  const title = view === "color" ? t.color : task.text;
+  const title = view === "color" ? t.color : view === "deadline" ? t.deadline : task.text;
 
   return createPortal(
-    <div className="tm-modal-overlay" onClick={onClose}>
+    <div
+      className="tm-modal-overlay"
+      onClick={onClose}
+      onMouseDown={stop}
+      onPointerDown={stop}
+      onTouchStart={stop}
+      onTouchEnd={stop}
+      onDoubleClick={stop}
+    >
       <div className="tm-modal" onClick={(e) => e.stopPropagation()}>
         <div className="tm-modal-head">
           {view === "home" ? (
@@ -109,9 +134,44 @@ export default function TaskMenu({
             <button className="tm-modal-opt" onClick={() => setView("color")} aria-label={t.changeColor}>
               <ColorIcon color={task.color ?? null} /><span>{t.color}</span>
             </button>
+            <button className="tm-modal-opt" onClick={() => setView("deadline")} aria-label={t.setDeadline}>
+              <CalendarIcon active={!!task.deadline} /><span>{t.deadline}</span>
+            </button>
             <button className="tm-modal-opt is-danger" onClick={() => { onDelete(); onClose(); }} aria-label={t.deleteTask}>
               <TrashIcon /><span>{t.delete}</span>
             </button>
+          </div>
+        )}
+
+        {view === "deadline" && (
+          <div className="tm-modal-body">
+            <input
+              type="date"
+              className="tm-modal-date"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && draft) { onDeadlineChange(draft); onClose(); }
+              }}
+              aria-label={t.deadline}
+            />
+            <div className="tm-modal-actions">
+              {task.deadline && (
+                <button
+                  className="tm-modal-btn"
+                  onClick={() => { onDeadlineChange(null); onClose(); }}
+                >
+                  {t.removeDeadline}
+                </button>
+              )}
+              <button
+                className="tm-modal-btn is-primary"
+                disabled={!draft}
+                onClick={() => { onDeadlineChange(draft); onClose(); }}
+              >
+                {t.save}
+              </button>
+            </div>
           </div>
         )}
 

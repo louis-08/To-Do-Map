@@ -23,6 +23,7 @@ const WeekRow = memo(function WeekRow({
   onDelete,
   onColorChange,
   onEdit,
+  onDeadlineChange,
   currentRef,
   todayRef,
 }: {
@@ -34,6 +35,7 @@ const WeekRow = memo(function WeekRow({
   onDelete: (id: string) => void;
   onColorChange: (id: string, color: string | null) => void;
   onEdit: (id: string, text: string) => void;
+  onDeadlineChange: (id: string, deadline: string | null) => void;
   currentRef?: React.RefObject<HTMLDivElement | null>;
   todayRef?: React.RefObject<HTMLDivElement | null>;
 }) {
@@ -71,6 +73,7 @@ const WeekRow = memo(function WeekRow({
             onDelete={onDelete}
             onColorChange={onColorChange}
             onEdit={onEdit}
+            onDeadlineChange={onDeadlineChange}
             todayRef={state === "today" ? todayRef : undefined}
           />
         );
@@ -86,6 +89,7 @@ const WeekRow = memo(function WeekRow({
         onDelete={onDelete}
         onColorChange={onColorChange}
         onEdit={onEdit}
+        onDeadlineChange={onDeadlineChange}
       />
     </div>
   );

@@ -28,6 +28,7 @@ export default function DayColumn({
   onDelete,
   onColorChange,
   onEdit,
+  onDeadlineChange,
   todayRef,
 }: {
   date: Date;
@@ -39,6 +40,7 @@ export default function DayColumn({
   onDelete: (id: string) => void;
   onColorChange: (id: string, color: string | null) => void;
   onEdit: (id: string, text: string) => void;
+  onDeadlineChange: (id: string, deadline: string | null) => void;
   todayRef?: RefObject<HTMLDivElement | null>;
 }) {
   const { t } = useI18n();
@@ -74,6 +76,7 @@ export default function DayColumn({
               onDelete={() => onDelete(task.id)}
               onColorChange={(color) => onColorChange(task.id, color)}
               onEdit={(text) => onEdit(task.id, text)}
+              onDeadlineChange={(deadline) => onDeadlineChange(task.id, deadline)}
             />
           ))}
         </div>
