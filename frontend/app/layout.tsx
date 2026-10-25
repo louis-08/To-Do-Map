@@ -14,7 +14,7 @@ const hanken = Hanken_Grotesk({
 export const metadata: Metadata = {
   title: "To Do Map",
   description: "Calendar-based personal task manager",
-  // Tab icon comes from app/favicon.ico (pixel-hinted 16/32/48), iOS from app/apple-icon.tsx.
+  // Tab icon comes from app/favicon.ico (16/32/48, tight crop), iOS from app/apple-icon.tsx.
   // Regenerate all icons from public/icon.svg with: python3 scripts/build-icons.py
   appleWebApp: {
     capable: true,
