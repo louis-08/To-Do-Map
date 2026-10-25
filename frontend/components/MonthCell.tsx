@@ -19,6 +19,7 @@ export default function MonthCell({
   onDelete,
   onColorChange,
   onEdit,
+  onDeadlineChange,
 }: {
   monthISO: string;
   label: string;
@@ -29,6 +30,7 @@ export default function MonthCell({
   onDelete: (id: string) => void;
   onColorChange: (id: string, color: string | null) => void;
   onEdit: (id: string, text: string) => void;
+  onDeadlineChange: (id: string, deadline: string | null) => void;
 }) {
   const { t } = useI18n();
   const { setNodeRef, isOver } = useDroppable({ id: monthISO });
@@ -56,6 +58,7 @@ export default function MonthCell({
               onDelete={() => onDelete(task.id)}
               onColorChange={(color) => onColorChange(task.id, color)}
               onEdit={(text) => onEdit(task.id, text)}
+              onDeadlineChange={(deadline) => onDeadlineChange(task.id, deadline)}
             />
           ))}
         </div>

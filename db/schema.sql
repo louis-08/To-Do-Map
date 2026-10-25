@@ -8,6 +8,7 @@ CREATE TABLE tasks (
   done              BOOLEAN DEFAULT FALSE,
   color             TEXT DEFAULT NULL,
   position          INTEGER NOT NULL,
+  deadline          DATE DEFAULT NULL,
   remind_at         TIMESTAMPTZ DEFAULT NULL,
   reminder_sent_at  TIMESTAMPTZ DEFAULT NULL,
   created_at        TIMESTAMPTZ DEFAULT now()
@@ -44,6 +45,7 @@ CREATE TABLE deleted_tasks (
   date        DATE NOT NULL,
   text        TEXT NOT NULL,
   color       TEXT DEFAULT NULL,
+  deadline    DATE DEFAULT NULL,
   deleted_at  TIMESTAMPTZ DEFAULT now()
 );
 

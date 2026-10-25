@@ -60,6 +60,7 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
         position: (tasksQuery.data?.data ?? []).filter((t) => t.date === date && t.scope === scope && t.is_weekly_objective === isWeekly).length,
         is_weekly_objective: isWeekly,
         scope,
+        deadline: null,
         created_at: new Date().toISOString(),
       };
       patchTasks((prev) => [...prev, optimistic]);
@@ -117,6 +118,18 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
     onSettled: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
   });
 
+  const deadlineTask = useMutation({
+    mutationFn: ({ id, deadline }: { id: string; deadline: string | null }) => a.tasks.update(id, { deadline }),
+    onMutate: async ({ id, deadline }) => {
+      await qc.cancelQueries({ queryKey: ["tasks"] });
+      const previous = snapshotTasks();
+      patchTasks((prev) => prev.map((t) => t.id === id ? { ...t, deadline } : t));
+      return { previous };
+    },
+    onError: (_e, _v, ctx) => qc.setQueryData(TASKS_KEY, ctx?.previous),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+
   const reorderTasks = useMutation({
     mutationFn: (updates: { id: string; date: string; position: number; is_weekly_objective?: boolean; scope?: TaskScope }[]) =>
       a.tasks.reorder(updates),
@@ -149,6 +162,7 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
   const { mutate: deleteMutate } = deleteTask;
   const { mutate: editMutate } = editTask;
   const { mutate: colorMutate } = colorTask;
+  const { mutate: deadlineMutate } = deadlineTask;
   const { mutate: reorderMutate } = reorderTasks;
 
   const handleAddTask = useCallback((date: string, text: string) => {
@@ -188,6 +202,10 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
     colorMutate({ id, color });
   }, [colorMutate]);
 
+  const handleDeadlineChange = useCallback((id: string, deadline: string | null) => {
+    deadlineMutate({ id, deadline });
+  }, [deadlineMutate]);
+
   const handleReorder = useCallback((updates: { id: string; date: string; position: number; is_weekly_objective?: boolean; scope?: TaskScope }[]) => {
     reorderMutate(updates);
   }, [reorderMutate]);
@@ -223,6 +241,7 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
       onDelete={handleDelete}
       onColorChange={handleColorChange}
       onEdit={handleEdit}
+      onDeadlineChange={handleDeadlineChange}
       onReorder={handleReorder}
       onExport={handleExport}
     />

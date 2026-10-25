@@ -29,6 +29,7 @@ export default function WeeklyObjective({
   onDelete,
   onColorChange,
   onEdit,
+  onDeadlineChange,
 }: {
   weekNum: number;
   monday: Date;
@@ -40,6 +41,7 @@ export default function WeeklyObjective({
   onDelete: (id: string) => void;
   onColorChange: (id: string, color: string | null) => void;
   onEdit: (id: string, text: string) => void;
+  onDeadlineChange: (id: string, deadline: string | null) => void;
 }) {
   const { t } = useI18n();
   const mondayISO = toISO(monday);
@@ -68,6 +70,7 @@ export default function WeeklyObjective({
               onDelete={() => onDelete(task.id)}
               onColorChange={(color) => onColorChange(task.id, color)}
               onEdit={(text) => onEdit(task.id, text)}
+              onDeadlineChange={(deadline) => onDeadlineChange(task.id, deadline)}
             />
           ))}
         </div>

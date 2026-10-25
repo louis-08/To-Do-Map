@@ -10,6 +10,7 @@ class TaskCreate(BaseModel):
     position: int
     is_weekly_objective: bool = False
     scope: str = "day"
+    deadline: Optional[datetime.date] = None
 
 
 class TaskUpdate(BaseModel):
@@ -20,6 +21,22 @@ class TaskUpdate(BaseModel):
     date: Optional[datetime.date] = None
     is_weekly_objective: Optional[bool] = None
     scope: Optional[str] = None
+    # `null` means "clear the deadline"; an omitted key means "leave unchanged".
+    # The two are told apart via `model_fields_set` in `to_patch`.
+    deadline: Optional[datetime.date] = None
+
+    def to_patch(self) -> dict:
+        """Build the column patch for Supabase.
+
+        Existing fields keep their historical behaviour (None = untouched).
+        `deadline` is the only field that can be explicitly cleared.
+        """
+        patch = {k: v for k, v in self.model_dump().items() if v is not None and k != "deadline"}
+        if "date" in patch:
+            patch["date"] = str(patch["date"])
+        if "deadline" in self.model_fields_set:
+            patch["deadline"] = str(self.deadline) if self.deadline is not None else None
+        return patch
 
 
 class ReorderItem(BaseModel):

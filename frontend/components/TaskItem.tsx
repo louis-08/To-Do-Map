@@ -7,6 +7,7 @@ import type { Task } from "@/lib/api";
 import { TASK_COLORS } from "./ColorPicker";
 import TaskMenu from "./TaskMenu";
 import { useI18n } from "@/lib/i18n";
+import { deadlineStatus, formatDeadline, todayISO } from "@/lib/deadline";
 
 function DotsIcon() {
   return (
@@ -18,20 +19,31 @@ function DotsIcon() {
   );
 }
 
+function CalendarIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width={11} height={11} aria-hidden="true">
+      <rect x="2.2" y="3.4" width="11.6" height="10.2" rx="1.8" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M2.2 6.8h11.6M5.4 2v2.6M10.6 2v2.6" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export default function TaskItem({
   task,
   onToggle,
   onDelete,
   onColorChange,
   onEdit,
+  onDeadlineChange,
 }: {
   task: Task;
   onToggle: () => void;
   onDelete: () => void;
   onColorChange: (color: string | null) => void;
   onEdit: (text: string) => void;
+  onDeadlineChange: (deadline: string | null) => void;
 }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editVal, setEditVal] = useState(task.text);
@@ -56,6 +68,13 @@ export default function TaskItem({
     : undefined;
 
   const style = { transform: CSS.Transform.toString(transform), transition };
+
+  const deadlineLabel = task.deadline
+    ? formatDeadline(task.deadline, lang === "de" ? "de-DE" : "en-US")
+    : null;
+  const deadlineState = task.deadline
+    ? deadlineStatus(task.deadline, task.done, todayISO())
+    : null;
 
   function commitEdit() {
     const trimmed = editVal.trim();
@@ -126,7 +145,18 @@ export default function TaskItem({
           onClick={(e) => e.stopPropagation()}
         />
       ) : (
-        <span className="tm-task-text">{task.text}</span>
+        <div className="tm-task-body">
+          <span className="tm-task-text">{task.text}</span>
+          {deadlineLabel && (
+            <span
+              className={"tm-deadline is-" + deadlineState}
+              title={`${t.deadline}: ${deadlineLabel}`}
+            >
+              <CalendarIcon />
+              {deadlineLabel}
+            </span>
+          )}
+        </div>
       )}
 
       {!editing && (
@@ -148,6 +178,7 @@ export default function TaskItem({
           onColorChange={onColorChange}
           onDelete={onDelete}
           onEdit={() => setEditing(true)}
+          onDeadlineChange={onDeadlineChange}
           onClose={() => setMenuOpen(false)}
         />
       )}

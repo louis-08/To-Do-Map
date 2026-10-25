@@ -18,6 +18,7 @@ export default function YearObjective({
   onDelete,
   onColorChange,
   onEdit,
+  onDeadlineChange,
 }: {
   year: number;
   yearISO: string;
@@ -29,6 +30,7 @@ export default function YearObjective({
   onDelete: (id: string) => void;
   onColorChange: (id: string, color: string | null) => void;
   onEdit: (id: string, text: string) => void;
+  onDeadlineChange: (id: string, deadline: string | null) => void;
 }) {
   const { t } = useI18n();
   const { setNodeRef, isOver } = useDroppable({ id: "year:" + yearISO });
@@ -59,6 +61,7 @@ export default function YearObjective({
               onDelete={() => onDelete(task.id)}
               onColorChange={(color) => onColorChange(task.id, color)}
               onEdit={(text) => onEdit(task.id, text)}
+              onDeadlineChange={(deadline) => onDeadlineChange(task.id, deadline)}
             />
           ))}
         </div>
