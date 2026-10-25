@@ -13,7 +13,7 @@ export default async function AppleIcon() {
   return new ImageResponse(
     (
       <div style={{ width: "100%", height: "100%", display: "flex" }}>
-        <img src={dataUrl} width="512" height="512" />
+        <img src={dataUrl} width={512} height={512} />
       </div>
     ),
     { ...size }
