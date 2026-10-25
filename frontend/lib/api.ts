@@ -1,3 +1,5 @@
+import type { Priority } from "./priority";
+
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 
 async function req<T>(
@@ -34,6 +36,8 @@ export type Task = {
   position: number;
   is_weekly_objective: boolean;
   scope: TaskScope;
+  // "none" (default) | "medium" (yellow) | "high" (red). Replaces task colours.
+  priority: Priority;
   // null = "(kein Projekt)". May reference a soft-deleted project.
   project_id: string | null;
   // `YYYY-MM-DD`, or null when the task has no deadline.
@@ -80,6 +84,7 @@ export type DeletedTask = {
   text: string;
   color: string | null;
   deadline?: string | null;
+  priority?: Priority;
   deleted_at: string;
 };
 
@@ -89,10 +94,10 @@ export function api(getToken: () => Promise<string | null>) {
       list: (start: string, end: string) =>
         req<{ data: Task[] }>(`/tasks?start=${start}&end=${end}`, { method: "GET" }, getToken),
 
-      create: (body: { date: string; text: string; color: string | null; position: number; is_weekly_objective: boolean; scope?: TaskScope; project_id?: string | null; deadline?: string | null }) =>
+      create: (body: { date: string; text: string; color: string | null; position: number; is_weekly_objective: boolean; scope?: TaskScope; project_id?: string | null; deadline?: string | null; priority?: Priority }) =>
         req<{ data: Task }>("/tasks", { method: "POST", body: JSON.stringify(body) }, getToken),
 
-      update: (id: string, body: Partial<Pick<Task, "text" | "done" | "color" | "position" | "date" | "project_id" | "deadline">>) =>
+      update: (id: string, body: Partial<Pick<Task, "text" | "done" | "priority" | "position" | "date" | "project_id" | "deadline">>) =>
         req<{ data: Task }>(`/tasks/${id}`, { method: "PATCH", body: JSON.stringify(body) }, getToken),
 
       delete: (id: string) =>

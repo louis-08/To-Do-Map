@@ -15,7 +15,7 @@ DEFAULTS = {
     "tasks": lambda: {
         "id": str(uuid.uuid4()), "done": False, "color": None,
         "is_weekly_objective": False, "scope": "day", "project_id": None,
-        "deadline": None, "created_at": _NOW(),
+        "deadline": None, "priority": "none", "created_at": _NOW(),
     },
     "projects": lambda: {
         "id": str(uuid.uuid4()), "color": None, "position": 0,
@@ -24,7 +24,7 @@ DEFAULTS = {
     "deleted_tasks": lambda: {
         "id": str(uuid.uuid4()), "color": None, "scope": "day",
         "is_weekly_objective": False, "project_id": None, "deadline": None,
-        "deleted_at": _NOW(),
+        "priority": "none", "deleted_at": _NOW(),
     },
     "weekly_objectives": lambda: {"id": str(uuid.uuid4()), "text": ""},
     "rollover_log": lambda: {},

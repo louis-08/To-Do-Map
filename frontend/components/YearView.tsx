@@ -14,6 +14,7 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import type { Task } from "@/lib/api";
+import type { Priority } from "@/lib/priority";
 import MonthCell from "./MonthCell";
 import QuarterCell from "./QuarterCell";
 import YearObjective from "./YearObjective";
@@ -41,7 +42,7 @@ export default function YearView({
   onAddYearTask,
   onToggle,
   onDelete,
-  onColorChange,
+  onPriorityChange,
   onEdit,
   onDeadlineChange,
   onReorder,
@@ -55,7 +56,7 @@ export default function YearView({
   onAddYearTask: (yearISO: string, text: string) => void;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
-  onColorChange: (id: string, color: string | null) => void;
+  onPriorityChange: (id: string, priority: Priority) => void;
   onEdit: (id: string, text: string) => void;
   onDeadlineChange: (id: string, deadline: string | null) => void;
   onReorder: (updates: { id: string; date: string; position: number; is_weekly_objective?: boolean; scope?: Task["scope"] }[]) => void;
@@ -160,7 +161,7 @@ export default function YearView({
                       onAdd={onAddMonthTask}
                       onToggle={onToggle}
                       onDelete={onDelete}
-                      onColorChange={onColorChange}
+                      onPriorityChange={onPriorityChange}
                       onEdit={onEdit}
                       onDeadlineChange={onDeadlineChange}
                     />
@@ -175,7 +176,7 @@ export default function YearView({
                   onAdd={onAddQuarterTask}
                   onToggle={onToggle}
                   onDelete={onDelete}
-                  onColorChange={onColorChange}
+                  onPriorityChange={onPriorityChange}
                   onEdit={onEdit}
                   onDeadlineChange={onDeadlineChange}
                 />
@@ -193,7 +194,7 @@ export default function YearView({
               onAdd={onAddYearTask}
               onToggle={onToggle}
               onDelete={onDelete}
-              onColorChange={onColorChange}
+              onPriorityChange={onPriorityChange}
               onEdit={onEdit}
               onDeadlineChange={onDeadlineChange}
             />

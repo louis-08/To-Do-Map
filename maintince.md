@@ -90,12 +90,13 @@ Important files:
 
 - `db/schema.sql` contains the base schema.
 - `db/migration_deadline.sql` adds `tasks.deadline` and `deleted_tasks.deadline` (both nullable `DATE`). It is idempotent. Run it in the Supabase SQL editor **before** deploying the backend that uses it; the API inserts a `deadline` key on every task create and delete, so those calls fail while the column is missing.
+- `db/migration_priority.sql` adds `priority` ('none' | 'medium' | 'high') to `tasks` and `deleted_tasks`, converting existing colours once (red → high, amber → medium). The `color` column is kept but no longer used by the UI.
 - `db/migration_projects.sql` adds projects. Run it before deploying the projects feature.
 - `db/migration_reminders.sql` is historical and may remain applied. The reminder columns and `push_subscriptions` table are unused by the application and can be cleaned up later with a separate migration.
 
 Main tables:
 
-- `tasks`: user tasks, dates, ordering, completion, colors, scopes, and an optional `deadline` date.
+- `tasks`: user tasks, dates, ordering, completion, priority (none / medium = yellow / high = red), scopes, an optional `deadline` date and an optional `project_id`. The legacy `color` column is unused.
 - `weekly_objectives`: one weekly objective per user and week.
 - `deleted_tasks`: soft-deleted tasks shown in trash. The backend keeps only the latest 30 per user.
 - `rollover_log`: tracks whether rollover already ran for a user on a given day.
@@ -129,7 +130,7 @@ npm test
 
 ## Deployment Checklist
 
-0. Apply any new file in `db/` (currently `migration_deadline.sql` and `migration_projects.sql`) to Supabase first.
+0. Apply any new file in `db/` (currently `migration_deadline.sql`, `migration_projects.sql` and `migration_priority.sql`) to Supabase first.
 1. In Vercel project settings, select the Services framework.
 2. Build the frontend with `npm.cmd run build` from `frontend`.
 3. Set Clerk variables for the frontend and Supabase, Clerk JWKS, and CORS variables for the backend service.

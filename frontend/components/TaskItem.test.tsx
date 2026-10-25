@@ -16,6 +16,7 @@ function task(overrides: Partial<Task> = {}): Task {
     text: "Write report",
     done: false,
     color: null,
+    priority: "none",
     position: 0,
     is_weekly_objective: false,
     scope: "day",
@@ -35,7 +36,7 @@ function render(t: Task) {
             task={t}
             onToggle={noop}
             onDelete={noop}
-            onColorChange={noop}
+            onPriorityChange={noop}
             onEdit={noop}
             onDeadlineChange={noop}
           />
@@ -97,5 +98,28 @@ describe("TaskItem project label", () => {
     const project = html.indexOf("tm-task-project");
     expect(text).toBeLessThan(deadline);
     expect(deadline).toBeLessThan(project);
+  });
+});
+
+describe("TaskItem priority", () => {
+  it("renders a plain card for priority none", () => {
+    const html = render(task());
+    expect(html).not.toContain("is-prio-");
+    expect(html).not.toContain("background:#fd");
+  });
+
+  it("colours medium yellow and high red", () => {
+    const medium = render(task({ priority: "medium" }));
+    expect(medium).toContain("is-prio-medium");
+    expect(medium).toContain("background:#fdefce");
+    const high = render(task({ priority: "high" }));
+    expect(high).toContain("is-prio-high");
+    expect(high).toContain("background:#fde7e4");
+  });
+
+  it("ignores the legacy colour field", () => {
+    const html = render(task({ color: "red" }));
+    expect(html).not.toContain("is-prio-");
+    expect(html).not.toContain("background:#fde7e4");
   });
 });

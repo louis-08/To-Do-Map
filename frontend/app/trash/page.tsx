@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import NavBar from "@/components/NavBar";
 import { currentYearMonth } from "@/lib/dates";
+import { PRIORITY_STYLE, normalizePriority } from "@/lib/priority";
 
 export default function TrashPage() {
   const { getToken } = useAuth();
@@ -46,10 +47,10 @@ export default function TrashPage() {
               key={task.id}
               className="flex items-center gap-3 p-3 rounded border border-[var(--border)] bg-[var(--bg-subtle)]"
             >
-              {task.color && (
+              {PRIORITY_STYLE[normalizePriority(task.priority)] && (
                 <span
                   className="w-3 h-3 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: task.color }}
+                  style={{ backgroundColor: PRIORITY_STYLE[normalizePriority(task.priority)]!.dot }}
                 />
               )}
               <span className="flex-1 text-sm">{task.text}</span>

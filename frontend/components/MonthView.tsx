@@ -13,6 +13,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import type { ReorderUpdate, Task } from "@/lib/api";
+import type { Priority } from "@/lib/priority";
 import { dropTargetOf, finishDrop, moveTo } from "@/lib/board";
 import WeekRow from "./WeekRow";
 import TopBar from "./TopBar";
@@ -76,7 +77,7 @@ export default function MonthView({
   onAddYearTask,
   onToggle,
   onDelete,
-  onColorChange,
+  onPriorityChange,
   onEdit,
   onDeadlineChange,
   onReorder,
@@ -90,7 +91,7 @@ export default function MonthView({
   onAddYearTask: (yearISO: string, text: string) => void;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
-  onColorChange: (id: string, color: string | null) => void;
+  onPriorityChange: (id: string, priority: Priority) => void;
   onEdit: (id: string, text: string) => void;
   onDeadlineChange: (id: string, deadline: string | null) => void;
   onReorder: (updates: ReorderUpdate[]) => void;
@@ -358,7 +359,7 @@ export default function MonthView({
                   onAddWeeklyTask={onAddWeeklyTask}
                   onToggle={onToggle}
                   onDelete={onDelete}
-                  onColorChange={onColorChange}
+                  onPriorityChange={onPriorityChange}
                   onEdit={onEdit}
                   onDeadlineChange={onDeadlineChange}
                   currentRef={week.isCurrent ? currentRef : undefined}
@@ -396,7 +397,7 @@ export default function MonthView({
             onAddYearTask={onAddYearTask}
             onToggle={onToggle}
             onDelete={onDelete}
-            onColorChange={onColorChange}
+            onPriorityChange={onPriorityChange}
             onEdit={onEdit}
             onDeadlineChange={onDeadlineChange}
             onReorder={onReorder}

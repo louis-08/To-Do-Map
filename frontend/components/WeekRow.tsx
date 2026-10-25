@@ -2,6 +2,7 @@
 
 import { memo, useMemo } from "react";
 import type { Task } from "@/lib/api";
+import type { Priority } from "@/lib/priority";
 import { buildLanes, cellId, inLane, type Lane } from "@/lib/board";
 import { useProjects } from "@/lib/projects";
 import { useI18n } from "@/lib/i18n";
@@ -30,7 +31,7 @@ type Props = {
   onAddWeeklyTask: (mondayISO: string, text: string, projectId?: string | null) => void;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
-  onColorChange: (id: string, color: string | null) => void;
+  onPriorityChange: (id: string, priority: Priority) => void;
   onEdit: (id: string, text: string) => void;
   onDeadlineChange: (id: string, deadline: string | null) => void;
   currentRef?: React.RefObject<HTMLDivElement | null>;
@@ -72,7 +73,7 @@ const WeekRow = memo(function WeekRow(props: Props) {
 
 /** Normal view: one row per week, tasks carry a project label. */
 function PlainWeek({
-  week, tasks, onAddTask, onAddWeeklyTask, onToggle, onDelete, onColorChange, onEdit, onDeadlineChange, currentRef, todayRef,
+  week, tasks, onAddTask, onAddWeeklyTask, onToggle, onDelete, onPriorityChange, onEdit, onDeadlineChange, currentRef, todayRef,
 }: Props) {
   const today = isoToday();
   const mondayISO = toISO(week.monday);
@@ -98,7 +99,7 @@ function PlainWeek({
             onAdd={onAddTask}
             onToggle={onToggle}
             onDelete={onDelete}
-            onColorChange={onColorChange}
+            onPriorityChange={onPriorityChange}
             onEdit={onEdit}
             onDeadlineChange={onDeadlineChange}
             todayRef={state === "today" ? todayRef : undefined}
@@ -115,7 +116,7 @@ function PlainWeek({
         onAdd={onAddWeeklyTask}
         onToggle={onToggle}
         onDelete={onDelete}
-        onColorChange={onColorChange}
+        onPriorityChange={onPriorityChange}
         onEdit={onEdit}
         onDeadlineChange={onDeadlineChange}
       />
@@ -129,7 +130,7 @@ function PlainWeek({
  * lane re-assigns its project.
  */
 function LanedWeek({
-  week, tasks, onAddTask, onAddWeeklyTask, onToggle, onDelete, onColorChange, onEdit, onDeadlineChange, currentRef, todayRef,
+  week, tasks, onAddTask, onAddWeeklyTask, onToggle, onDelete, onPriorityChange, onEdit, onDeadlineChange, currentRef, todayRef,
 }: Props) {
   const { t } = useI18n();
   const { projects } = useProjects();
@@ -183,7 +184,7 @@ function LanedWeek({
                   onAdd={(date, text) => onAddTask(date, text, lane.projectId)}
                   onToggle={onToggle}
                   onDelete={onDelete}
-                  onColorChange={onColorChange}
+                  onPriorityChange={onPriorityChange}
                   onEdit={onEdit}
                   onDeadlineChange={onDeadlineChange}
                 />
@@ -200,7 +201,7 @@ function LanedWeek({
               onAdd={(monday, text) => onAddWeeklyTask(monday, text, lane.projectId)}
               onToggle={onToggle}
               onDelete={onDelete}
-              onColorChange={onColorChange}
+              onPriorityChange={onPriorityChange}
               onEdit={onEdit}
               onDeadlineChange={onDeadlineChange}
             />

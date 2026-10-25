@@ -51,6 +51,7 @@ async def restore_task(task_id: str, user_id: str = Depends(get_current_user)):
         "text": task["text"],
         "color": task["color"],
         "deadline": task.get("deadline"),
+        "priority": task.get("priority") or "none",
         "done": False,
         "position": next_pos,
         "scope": task.get("scope") or "day",

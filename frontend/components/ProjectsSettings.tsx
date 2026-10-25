@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { Project } from "@/lib/api";
 import { useProjects } from "@/lib/projects";
 import { useI18n } from "@/lib/i18n";
-import { TASK_COLORS } from "./ColorPicker";
+import { PROJECT_COLORS } from "@/lib/palette";
 import { projectDotColor } from "./ProjectLabel";
 
 function Arrow({ up }: { up?: boolean }) {
@@ -74,7 +74,7 @@ function ProjectRow({
       {confirm && <div className="set-row-sub tm-proj-hint">{t.deleteProjectConfirm}</div>}
       {colorOpen && (
         <div className="tm-proj-colors">
-          {TASK_COLORS.map((c) => (
+          {PROJECT_COLORS.map((c) => (
             <button
               key={c.key}
               className={"tm-color-sw" + (project.color === c.key ? " is-sel" : "")}
@@ -102,7 +102,7 @@ export default function ProjectsSettings() {
     setBusy(true);
     try {
       // Cycle through the palette so new projects are distinguishable by default.
-      const color = TASK_COLORS[(active.length + 1) % TASK_COLORS.length].key;
+      const color = PROJECT_COLORS[(active.length + 1) % PROJECT_COLORS.length].key;
       await createProject(next, color);
       setName("");
     } catch {
