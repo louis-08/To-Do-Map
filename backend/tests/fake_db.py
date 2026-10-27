@@ -16,6 +16,8 @@ DEFAULTS = {
         "id": str(uuid.uuid4()), "done": False, "color": None,
         "is_weekly_objective": False, "scope": "day", "project_id": None,
         "deadline": None, "priority": "none", "description": "", "created_at": _NOW(),
+        "repeat_freq": None, "repeat_interval": 1, "repeat_anchor": None,
+        "repeat_until": None, "repeat_from_id": None,
     },
     "projects": lambda: {
         "id": str(uuid.uuid4()), "color": None, "position": 0,
@@ -25,6 +27,8 @@ DEFAULTS = {
         "id": str(uuid.uuid4()), "color": None, "scope": "day",
         "is_weekly_objective": False, "project_id": None, "deadline": None,
         "priority": "none", "description": "", "deleted_at": _NOW(),
+        "repeat_freq": None, "repeat_interval": 1, "repeat_anchor": None,
+        "repeat_until": None, "repeat_from_id": None,
     },
     "weekly_objectives": lambda: {"id": str(uuid.uuid4()), "text": ""},
     "rollover_log": lambda: {},

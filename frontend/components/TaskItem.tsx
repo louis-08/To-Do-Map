@@ -5,11 +5,12 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { Task } from "@/lib/api";
 import { normalizePriority, priorityCardStyle, type Priority } from "@/lib/priority";
-import TaskMenu, { NoteIcon, type TaskMenuView } from "./TaskMenu";
+import TaskMenu, { NoteIcon, RepeatIcon, type TaskMenuView } from "./TaskMenu";
 import ProjectLabel from "./ProjectLabel";
 import { useI18n } from "@/lib/i18n";
 import { descriptionPreview, hasDescription } from "@/lib/description";
 import { deadlineStatus, formatDeadline, todayISO } from "@/lib/deadline";
+import { describeRepeat, isRepeating, taskRule } from "@/lib/repeat";
 
 function DotsIcon() {
   return (
@@ -82,6 +83,11 @@ export default function TaskItem({
     : null;
   const deadlineState = task.deadline
     ? deadlineStatus(task.deadline, task.done, todayISO())
+    : null;
+
+  const repeatRule = isRepeating(task) ? taskRule(task) : null;
+  const repeatLabel = repeatRule
+    ? describeRepeat(repeatRule, t, lang === "de" ? "de-DE" : "en-US")
     : null;
 
   function commitEdit() {
@@ -176,7 +182,7 @@ export default function TaskItem({
               </span>
             )}
           </span>
-          {(deadlineLabel || task.project_id) && (
+          {(deadlineLabel || task.project_id || repeatLabel) && (
             <span className="tm-task-meta">
               {deadlineLabel && (
                 <span
@@ -185,6 +191,11 @@ export default function TaskItem({
                 >
                   <CalendarIcon />
                   {deadlineLabel}
+                </span>
+              )}
+              {repeatLabel && (
+                <span className="tm-repeat-chip" title={`${t.repeatsLabel}: ${repeatLabel}`} aria-label={`${t.repeatsLabel}: ${repeatLabel}`}>
+                  <RepeatIcon size={11} />
                 </span>
               )}
               {task.project_id && <ProjectLabel projectId={task.project_id} />}
