@@ -28,13 +28,21 @@ CREATE TABLE tasks (
   deadline          DATE DEFAULT NULL,
   priority          TEXT NOT NULL DEFAULT 'none' CHECK (priority IN ('none', 'medium', 'high')),
   description       TEXT NOT NULL DEFAULT '' CHECK (char_length(description) <= 10000),
+  repeat_freq       TEXT DEFAULT NULL,              -- NULL = no repeat | day | week | month | year
+  repeat_interval   INTEGER NOT NULL DEFAULT 1,     -- every N units
+  repeat_anchor     DATE DEFAULT NULL,              -- schedule start; occurrences are computed from it
+  repeat_until      DATE DEFAULT NULL,              -- last allowed occurrence (inclusive), NULL = forever
+  repeat_from_id    UUID DEFAULT NULL,              -- occurrence this one was created from (no FK on purpose)
   -- color: legacy, no longer shown in the UI (replaced by priority)
   remind_at         TIMESTAMPTZ DEFAULT NULL,
   reminder_sent_at  TIMESTAMPTZ DEFAULT NULL,
-  created_at        TIMESTAMPTZ DEFAULT now()
+  created_at        TIMESTAMPTZ DEFAULT now(),
+  CHECK (repeat_interval BETWEEN 1 AND 999),
+  CHECK (repeat_freq IS NULL OR repeat_freq IN ('day', 'week', 'month', 'year'))
 );
 
 CREATE INDEX ON tasks (user_id, date);
+CREATE INDEX ON tasks (repeat_from_id) WHERE repeat_from_id IS NOT NULL;
 CREATE INDEX ON tasks (project_id) WHERE project_id IS NOT NULL;
 
 -- Lets the reminder scheduler cheaply find due, unsent reminders.
@@ -72,7 +80,14 @@ CREATE TABLE deleted_tasks (
   deadline    DATE DEFAULT NULL,
   priority    TEXT NOT NULL DEFAULT 'none' CHECK (priority IN ('none', 'medium', 'high')),
   description TEXT NOT NULL DEFAULT '' CHECK (char_length(description) <= 10000),
-  deleted_at  TIMESTAMPTZ DEFAULT now()
+  repeat_freq     TEXT DEFAULT NULL,
+  repeat_interval INTEGER NOT NULL DEFAULT 1,
+  repeat_anchor   DATE DEFAULT NULL,
+  repeat_until    DATE DEFAULT NULL,
+  repeat_from_id  UUID DEFAULT NULL,
+  deleted_at  TIMESTAMPTZ DEFAULT now(),
+  CHECK (repeat_interval BETWEEN 1 AND 999),
+  CHECK (repeat_freq IS NULL OR repeat_freq IN ('day', 'week', 'month', 'year'))
 );
 
 CREATE TABLE rollover_log (
