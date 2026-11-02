@@ -8,6 +8,7 @@ import MonthView from "@/components/MonthView";
 import { useI18n } from "@/lib/i18n";
 import { ProjectsProvider } from "@/lib/projects";
 import { DescriptionProvider } from "@/lib/description";
+import { RepeatProvider, type RepeatRule } from "@/lib/repeat";
 import type { Priority } from "@/lib/priority";
 
 const FETCH_START = "2026-01-01";
@@ -148,6 +149,24 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
     onSettled: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
   });
 
+  const repeatTask = useMutation({
+    mutationFn: ({ id, rule }: { id: string; rule: RepeatRule | null }) =>
+      // freq null switches the repetition off; until null removes the end date.
+      a.tasks.update(id, rule
+        ? { repeat_freq: rule.freq, repeat_interval: rule.interval, repeat_until: rule.until }
+        : { repeat_freq: null }),
+    onMutate: async ({ id, rule }) => {
+      await qc.cancelQueries({ queryKey: ["tasks"] });
+      const previous = snapshotTasks();
+      patchTasks((prev) => prev.map((t) => t.id === id
+        ? { ...t, repeat_freq: rule?.freq ?? null, repeat_interval: rule?.interval ?? 1, repeat_until: rule?.until ?? null }
+        : t));
+      return { previous };
+    },
+    onError: (_e, _v, ctx) => qc.setQueryData(TASKS_KEY, ctx?.previous),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+
   const assignTaskProject = useMutation({
     mutationFn: ({ id, projectId }: { id: string; projectId: string | null }) => a.tasks.update(id, { project_id: projectId }),
     onMutate: async ({ id, projectId }) => {
@@ -252,6 +271,7 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
   const { mutate: priorityMutate } = priorityTask;
   const { mutate: deadlineMutate } = deadlineTask;
   const { mutate: descriptionMutate } = descriptionTask;
+  const { mutate: repeatMutate } = repeatTask;
   const { mutate: reorderMutate } = reorderTasks;
   const { mutate: assignMutate } = assignTaskProject;
   const { mutateAsync: createProjectAsync } = createProjectM;
@@ -325,6 +345,10 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
     descriptionMutate({ id, description });
   }, [descriptionMutate]);
 
+  const setRepeat = useCallback((id: string, rule: RepeatRule | null) => {
+    repeatMutate({ id, rule });
+  }, [repeatMutate]);
+
   const handleReorder = useCallback((updates: ReorderUpdate[]) => {
     reorderMutate(updates);
   }, [reorderMutate]);
@@ -360,6 +384,7 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
       orderProjects={orderProjects}
     >
       <DescriptionProvider setDescription={setDescription}>
+      <RepeatProvider setRepeat={setRepeat}>
       <MonthView
         tasks={tasks}
         onAddTask={handleAddTask}
@@ -375,6 +400,7 @@ export default function CalendarPage({ params }: { params: Promise<{ month: stri
         onReorder={handleReorder}
         onExport={handleExport}
       />
+      </RepeatProvider>
       </DescriptionProvider>
     </ProjectsProvider>
   );

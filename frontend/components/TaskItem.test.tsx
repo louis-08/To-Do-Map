@@ -167,3 +167,35 @@ describe("TaskItem description icon", () => {
     expect(html).not.toContain("y".repeat(281));
   });
 });
+
+describe("TaskItem repeat chip", () => {
+  it("renders no chip for a task that does not repeat", () => {
+    const html = render(task());
+    expect(html).not.toContain("tm-repeat-chip");
+    expect(html).not.toContain("tm-task-meta");
+    expect(render(task({ repeat_freq: null }))).not.toContain("tm-repeat-chip");
+  });
+
+  it("shows a chip with the rule for a repeating task", () => {
+    const html = render(task({ repeat_freq: "week", repeat_interval: 2 }));
+    expect(html).toContain("tm-repeat-chip");
+    expect(html).toContain("Repeating task: Every 2 weeks");
+  });
+
+  it("includes the end date in the label", () => {
+    const html = render(task({ repeat_freq: "day", repeat_until: "2026-12-24" }));
+    expect(html).toMatch(/Repeating task: Every day, until Dec 24/);
+  });
+
+  it("hides the chip when the task can no longer repeat (weekly objective / month plan)", () => {
+    expect(render(task({ repeat_freq: "day", is_weekly_objective: true }))).not.toContain("tm-repeat-chip");
+    expect(render(task({ repeat_freq: "day", scope: "month" }))).not.toContain("tm-repeat-chip");
+  });
+
+  it("coexists with deadline and description", () => {
+    const html = render(task({ repeat_freq: "month", deadline: "2026-10-30", description: "n" }));
+    expect(html).toContain("tm-repeat-chip");
+    expect(html).toContain("tm-deadline");
+    expect(html).toContain("tm-task-note");
+  });
+});

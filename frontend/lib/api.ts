@@ -1,4 +1,5 @@
 import type { Priority } from "./priority";
+import type { RepeatFreq } from "./repeat";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "/api";
 
@@ -44,6 +45,14 @@ export type Task = {
   project_id: string | null;
   // `YYYY-MM-DD`, or null when the task has no deadline.
   deadline: string | null;
+  // Recurrence (day tasks only). repeat_freq null = does not repeat. Completing
+  // a repeating task makes the backend create the next occurrence.
+  repeat_freq?: RepeatFreq | null;
+  repeat_interval?: number;
+  // Start of the schedule; occurrences are computed from it by the backend.
+  repeat_anchor?: string | null;
+  // `YYYY-MM-DD`, last allowed occurrence (inclusive), null = never ends.
+  repeat_until?: string | null;
   created_at: string;
 };
 
@@ -88,6 +97,9 @@ export type DeletedTask = {
   deadline?: string | null;
   priority?: Priority;
   description?: string;
+  repeat_freq?: RepeatFreq | null;
+  repeat_interval?: number;
+  repeat_until?: string | null;
   deleted_at: string;
 };
 
@@ -100,7 +112,8 @@ export function api(getToken: () => Promise<string | null>) {
       create: (body: { date: string; text: string; color: string | null; position: number; is_weekly_objective: boolean; scope?: TaskScope; project_id?: string | null; deadline?: string | null; priority?: Priority; description?: string }) =>
         req<{ data: Task }>("/tasks", { method: "POST", body: JSON.stringify(body) }, getToken),
 
-      update: (id: string, body: Partial<Pick<Task, "text" | "done" | "priority" | "description" | "position" | "date" | "project_id" | "deadline">>) =>
+      // repeat_freq: null switches the repetition off; repeat_until: null removes the end date.
+      update: (id: string, body: Partial<Pick<Task, "text" | "done" | "priority" | "description" | "position" | "date" | "project_id" | "deadline" | "repeat_freq" | "repeat_interval" | "repeat_until">>) =>
         req<{ data: Task }>(`/tasks/${id}`, { method: "PATCH", body: JSON.stringify(body) }, getToken),
 
       delete: (id: string) =>

@@ -9,6 +9,10 @@ import { useI18n } from "@/lib/i18n";
 import { useProjects } from "@/lib/projects";
 import { assignableProjects } from "@/lib/board";
 import { DESCRIPTION_MAX, hasDescription, useDescriptionActions } from "@/lib/description";
+import {
+  REPEAT_FREQS, REPEAT_INTERVAL_MAX, canRepeat, describeRepeat, normalizeInterval, sameRule, taskRule, useRepeatActions,
+  type RepeatFreq, type RepeatRule,
+} from "@/lib/repeat";
 
 function PencilIcon() {
   return (
@@ -70,6 +74,17 @@ export function NoteIcon({ size = 20, dot = false }: { size?: number; dot?: bool
   );
 }
 
+/** Two arrows chasing each other: the "repeat" symbol. */
+export function RepeatIcon({ size = 20, dot = false }: { size?: number; dot?: boolean }) {
+  return (
+    <svg viewBox="0 0 16 16" width={size} height={size} aria-hidden="true">
+      <path d="M3 7.2V6.4A2.4 2.4 0 0 1 5.4 4H12M10.2 1.9 12.3 4l-2.1 2.1M13 8.8v.8a2.4 2.4 0 0 1-2.4 2.4H4M5.8 14.1 3.7 12l2.1-2.1"
+            fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+      {dot && <circle cx="13" cy="3" r="2.2" fill="var(--accent)" stroke="var(--canvas)" strokeWidth="1" />}
+    </svg>
+  );
+}
+
 function BackIcon() {
   return (
     <svg viewBox="0 0 16 16" width={16} height={16} aria-hidden="true">
@@ -86,7 +101,7 @@ function CloseIcon() {
   );
 }
 
-export type TaskMenuView = "home" | "priority" | "deadline" | "project" | "description";
+export type TaskMenuView = "home" | "priority" | "deadline" | "project" | "description" | "repeat";
 type View = TaskMenuView;
 
 // The menu is portalled to <body>, but React still bubbles its events up to the
@@ -112,8 +127,9 @@ export default function TaskMenu({
   /** Lets the description icon on the card open straight into the editor. */
   initialView?: TaskMenuView;
 }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { setDescription } = useDescriptionActions();
+  const { setRepeat } = useRepeatActions();
   const { projects, byId, assignProject, createProject } = useProjects();
   const [view, setView] = useState<View>(initialView);
   const [descDraft, setDescDraft] = useState(task.description ?? "");
@@ -148,6 +164,19 @@ export default function TaskMenu({
   }
   const [draft, setDraft] = useState(task.deadline ?? "");
 
+  const savedRule = taskRule(task);
+  const [repeatFreq, setRepeatFreq] = useState<RepeatFreq | "none">(savedRule?.freq ?? "none");
+  const [repeatInterval, setRepeatInterval] = useState(String(savedRule?.interval ?? 1));
+  const [repeatUntil, setRepeatUntil] = useState(savedRule?.until ?? "");
+  const locale = lang === "de" ? "de-DE" : "en-US";
+  // The end date can not lie before the task itself (the backend rejects it).
+  const untilInvalid = !!repeatUntil && repeatUntil < task.date;
+  const repeatDraft: RepeatRule | null =
+    repeatFreq === "none"
+      ? null
+      : { freq: repeatFreq, interval: normalizeInterval(repeatInterval), until: repeatUntil || null };
+  const repeatDirty = !sameRule(repeatDraft, savedRule);
+
   const savedDescription = task.description ?? "";
   const descDirty = descDraft.trim() !== savedDescription.trim();
 
@@ -176,6 +205,7 @@ export default function TaskMenu({
     : view === "deadline" ? t.deadline
     : view === "project" ? t.project
     : view === "description" ? t.description
+    : view === "repeat" ? t.repeat
     : task.text;
 
   return createPortal(
@@ -230,6 +260,12 @@ export default function TaskMenu({
             <button className="tm-modal-opt" onClick={() => setView("description")} aria-label={t.changeDescription}>
               <NoteIcon dot={hasDescription(task)} /><span>{t.description}</span>
             </button>
+            {canRepeat(task) && (
+              <button className="tm-modal-opt" onClick={() => setView("repeat")} aria-label={t.repeat}>
+                <RepeatIcon dot={!!savedRule} />
+                <span className="tm-modal-opt-sub">{savedRule ? describeRepeat(savedRule, t, locale) : t.repeat}</span>
+              </button>
+            )}
             <button className="tm-modal-opt is-danger" onClick={() => { onDelete(); onClose(); }} aria-label={t.deleteTask}>
               <TrashIcon /><span>{t.delete}</span>
             </button>
@@ -339,6 +375,67 @@ export default function TaskMenu({
                 className="tm-modal-btn is-primary"
                 disabled={!descDirty}
                 onClick={() => { saveDescription(); onClose(); }}
+              >
+                {t.save}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {view === "repeat" && (
+          <div className="tm-modal-body tm-repeat">
+            <select
+              className="tm-modal-date"
+              value={repeatFreq}
+              onChange={(e) => setRepeatFreq(e.target.value as RepeatFreq | "none")}
+              aria-label={t.repeat}
+            >
+              <option value="none">{t.repeatNone}</option>
+              {REPEAT_FREQS.map((f) => (
+                <option key={f} value={f}>{t.repeatOne[f]}</option>
+              ))}
+            </select>
+            {repeatFreq !== "none" && (
+              <>
+                <label className="tm-repeat-field">
+                  <span>{t.repeatInterval}</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    className="tm-modal-date"
+                    min={1}
+                    max={REPEAT_INTERVAL_MAX}
+                    step={1}
+                    value={repeatInterval}
+                    onChange={(e) => setRepeatInterval(e.target.value)}
+                    onBlur={() => setRepeatInterval(String(normalizeInterval(repeatInterval)))}
+                  />
+                </label>
+                <label className="tm-repeat-field">
+                  <span>{t.repeatEnds}</span>
+                  <input
+                    type="date"
+                    className="tm-modal-date"
+                    min={task.date}
+                    value={repeatUntil}
+                    aria-invalid={untilInvalid}
+                    onChange={(e) => setRepeatUntil(e.target.value)}
+                  />
+                </label>
+                <p className="tm-repeat-summary">{repeatDraft && describeRepeat(repeatDraft, t, locale)}</p>
+                <p className="tm-repeat-hint">{t.repeatHint}</p>
+              </>
+            )}
+            <div className="tm-modal-actions">
+              {savedRule && (
+                <button className="tm-modal-btn" onClick={() => { setRepeat(task.id, null); onClose(); }}>
+                  {t.repeatStop}
+                </button>
+              )}
+              <button
+                className="tm-modal-btn is-primary"
+                disabled={!repeatDirty || untilInvalid}
+                onClick={() => { setRepeat(task.id, repeatDraft); onClose(); }}
               >
                 {t.save}
               </button>

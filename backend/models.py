@@ -2,8 +2,13 @@ from pydantic import BaseModel, Field, field_validator
 from typing import Literal, Optional
 import datetime
 
+from recurrence import INTERVAL_MAX
+
 # Task priority. "none" is the default; "medium" is shown yellow, "high" red.
 Priority = Literal["none", "medium", "high"]
+
+# Recurrence unit: the task repeats every `repeat_interval` days / weeks / months / years.
+RepeatFreq = Literal["day", "week", "month", "year"]
 
 DESCRIPTION_MAX = 10000
 
@@ -26,6 +31,10 @@ class TaskCreate(BaseModel):
     deadline: Optional[datetime.date] = None
     priority: Priority = "none"
     description: str = Field(default="", max_length=DESCRIPTION_MAX)
+    # Recurrence (day-scope tasks only). The anchor of the schedule is `date`.
+    repeat_freq: Optional[RepeatFreq] = None
+    repeat_interval: int = Field(default=1, ge=1, le=INTERVAL_MAX)
+    repeat_until: Optional[datetime.date] = None
 
     _clean_description = field_validator("description")(_clean_description)
 
@@ -46,6 +55,12 @@ class TaskUpdate(BaseModel):
     priority: Optional[Priority] = None
     # "" removes the description; null/omitted = unchanged (legacy null rule).
     description: Optional[str] = Field(default=None, max_length=DESCRIPTION_MAX)
+    # Recurrence. Explicit null on repeat_freq switches the repetition off (and
+    # resets interval/until); explicit null on repeat_until removes the end date.
+    # Omitted = unchanged. The router re-anchors the schedule on every rule change.
+    repeat_freq: Optional[RepeatFreq] = None
+    repeat_interval: Optional[int] = Field(default=None, ge=1, le=INTERVAL_MAX)
+    repeat_until: Optional[datetime.date] = None
 
     _clean_description = field_validator("description")(_clean_description)
 
@@ -67,11 +82,15 @@ class TaskUpdate(BaseModel):
             patch["project_id"] = self.project_id
         if "deadline" in self.model_fields_set:
             patch["deadline"] = str(self.deadline) if self.deadline is not None else None
+        if "repeat_freq" in self.model_fields_set:
+            patch["repeat_freq"] = self.repeat_freq
+        if "repeat_until" in self.model_fields_set:
+            patch["repeat_until"] = str(self.repeat_until) if self.repeat_until is not None else None
         return patch
 
 
 # Fields where an explicitly sent null is meaningful (clear the value).
-NULLABLE_TASK_FIELDS = {"project_id", "deadline"}
+NULLABLE_TASK_FIELDS = {"project_id", "deadline", "repeat_freq", "repeat_until"}
 
 
 class ReorderItem(BaseModel):

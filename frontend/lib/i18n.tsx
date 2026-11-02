@@ -1,12 +1,13 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
+import type { RepeatFreq } from "./repeat";
 
 export type Lang = "en" | "de";
 
 const STORAGE_KEY = "todomap-lang";
 
-const en = {
+export const en = {
   // top bar
   week: "Week",
   year: "Year",
@@ -90,6 +91,16 @@ const en = {
   hasDescription: "Has a description",
   descriptionPlaceholder: "Add notes, links, details…",
   removeDescription: "Remove description",
+  repeat: "Repeat",
+  repeatNone: "Does not repeat",
+  repeatOne: { day: "Every day", week: "Every week", month: "Every month", year: "Every year" } as Record<RepeatFreq, string>,
+  repeatMany: { day: "Every {n} days", week: "Every {n} weeks", month: "Every {n} months", year: "Every {n} years" } as Record<RepeatFreq, string>,
+  repeatUntilShort: "until {date}",
+  repeatInterval: "Repeat every",
+  repeatEnds: "Ends on (optional)",
+  repeatStop: "Stop repeating",
+  repeatHint: "When you complete the task, the next one is created automatically.",
+  repeatsLabel: "Repeating task",
   save: "Save",
   close: "Close",
   back: "Back",
@@ -122,7 +133,7 @@ const en = {
 
 export type Translations = typeof en;
 
-const de: Translations = {
+export const de: Translations = {
   week: "Woche",
   year: "Jahr",
   today: "Heute",
@@ -199,6 +210,16 @@ const de: Translations = {
   hasDescription: "Hat eine Beschreibung",
   descriptionPlaceholder: "Notizen, Links, Details …",
   removeDescription: "Beschreibung entfernen",
+  repeat: "Wiederholen",
+  repeatNone: "Wiederholt sich nicht",
+  repeatOne: { day: "Jeden Tag", week: "Jede Woche", month: "Jeden Monat", year: "Jedes Jahr" },
+  repeatMany: { day: "Alle {n} Tage", week: "Alle {n} Wochen", month: "Alle {n} Monate", year: "Alle {n} Jahre" },
+  repeatUntilShort: "bis {date}",
+  repeatInterval: "Wiederholen alle",
+  repeatEnds: "Endet am (optional)",
+  repeatStop: "Wiederholung beenden",
+  repeatHint: "Wenn du die Aufgabe abhakst, wird die nächste automatisch angelegt.",
+  repeatsLabel: "Wiederkehrende Aufgabe",
   save: "Speichern",
   close: "Schließen",
   back: "Zurück",

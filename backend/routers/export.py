@@ -16,6 +16,11 @@ def _task_line(task: dict, project_names: dict[str, str] | None = None) -> str:
         line += f" (Priority: {task['priority']})"
     if task.get("deadline"):
         line += f" (Deadline: {task['deadline']})"
+    if task.get("repeat_freq"):
+        n = task.get("repeat_interval") or 1
+        unit = task["repeat_freq"] + ("" if n == 1 else "s")
+        line += f" (Repeats: every {unit if n == 1 else f'{n} {unit}'}"
+        line += f", until {task['repeat_until']})" if task.get("repeat_until") else ")"
     project = (project_names or {}).get(task.get("project_id"))
     if project:
         line += f" `[{project}]`"

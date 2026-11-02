@@ -66,6 +66,7 @@ Important files:
 - `backend/routers/export.py` exports a Markdown backup.
 - `backend/routers/settings.py` stores per-user settings.
 - `backend/routers/projects.py` handles project CRUD, ordering and soft delete.
+- `backend/recurrence.py` is the pure schedule arithmetic for recurring tasks (unit tested in `backend/tests/test_recurrence.py`).
 
 Common commands:
 
@@ -92,6 +93,7 @@ Important files:
 - `db/migration_deadline.sql` adds `tasks.deadline` and `deleted_tasks.deadline` (both nullable `DATE`). It is idempotent. Run it in the Supabase SQL editor **before** deploying the backend that uses it; the API inserts a `deadline` key on every task create and delete, so those calls fail while the column is missing.
 - `db/migration_priority.sql` adds `priority` ('none' | 'medium' | 'high') to `tasks` and `deleted_tasks`, converting existing colours once (red → high, amber → medium). The `color` column is kept but no longer used by the UI.
 - `db/migration_description.sql` adds `description` (`TEXT NOT NULL DEFAULT ''`, max 10 000 characters) to `tasks` and `deleted_tasks`. Idempotent. Run it **before** deploying: the API writes `description` on every task create and delete.
+- `db/migration_repeat.sql` adds recurring tasks: `repeat_freq`, `repeat_interval`, `repeat_anchor`, `repeat_until`, `repeat_from_id` on `tasks` and `deleted_tasks` (+ CHECK constraints and an index). Idempotent. Run it **before** deploying: the API writes the `repeat_*` columns on every task create and delete.
 - `db/migration_projects.sql` adds projects. Run it before deploying the projects feature.
 - `db/migration_reminders.sql` is historical and may remain applied. The reminder columns and `push_subscriptions` table are unused by the application and can be cleaned up later with a separate migration.
 
@@ -119,6 +121,16 @@ Main tables:
 - A task with a description shows a small note icon right after its text. Clicking the icon opens the editor; hovering shows the start of the text as tooltip.
 - API: `description` is accepted on `POST /api/tasks` and `PATCH /api/tasks/{id}`. In PATCH, `""` clears it and `null`/omitted means unchanged (legacy rule). It survives trash and restore and appears in the Markdown export as an indented quote below the task.
 
+## Recurring tasks
+
+- A day task can repeat like a calendar event: every N days / weeks / months / years, optionally until a date. Task menu → "Wiederholen"; a repeating task shows a small repeat icon. Month/quarter/year plans and weekly objectives cannot repeat (API: 422).
+- Mechanics: occurrences are **not** all pre-created. Completing a repeating task (`PATCH /api/tasks/{id}` with `done: true`) creates the next one (same text, priority, project, description, rule; deadline keeps its lead time) and returns it as `spawned`. Un-completing deletes that successor again if it is still open. `repeat_from_id` makes this idempotent, so toggling never duplicates.
+- The schedule is computed from `repeat_anchor` (the task date when the rule was set), never from the previous occurrence: a monthly rule on the 31st gives 31 Jan, 28 Feb, 31 Mar; rollover or dragging a task does not shift the series. The next occurrence is the first one after both the completed task's date and today, so a late completion skips missed days.
+- Changing freq/interval re-anchors on the task's current date; changing only the end date keeps the anchor. `PATCH` semantics: `repeat_freq: null` switches repetition off, `repeat_until: null` removes the end date, omitted = unchanged.
+- Deleting an open occurrence ends the series (nothing is created without a completion). To skip one occurrence, complete it.
+- Trash keeps the rule; Markdown export adds `(Repeats: every 2 weeks, until 2027-01-01)`.
+- "today" in the spawn logic is the server date (UTC), same as rollover.
+
 ## Tests
 
 Backend (pytest, in-memory fake of the Supabase client, no credentials needed):
@@ -138,7 +150,7 @@ npm test
 
 ## Deployment Checklist
 
-0. Apply any new file in `db/` (currently `migration_deadline.sql`, `migration_projects.sql`, `migration_priority.sql` and `migration_description.sql`) to Supabase first.
+0. Apply any new file in `db/` (currently `migration_deadline.sql`, `migration_projects.sql`, `migration_priority.sql`, `migration_description.sql` and `migration_repeat.sql`) to Supabase first.
 1. In Vercel project settings, select the Services framework.
 2. Build the frontend with `npm.cmd run build` from `frontend`.
 3. Set Clerk variables for the frontend and Supabase, Clerk JWKS, and CORS variables for the backend service.
